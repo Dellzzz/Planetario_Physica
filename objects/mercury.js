@@ -24,7 +24,7 @@ export function createMercury(scene, textures) {
   const orbit = createOrbitLine(SCALE.MERCURY_ORBIT, 0x7a6aa8, 0.35);
   scene.add(orbit);
 
-  return new CelestialBody({
+  const body = new CelestialBody({
     id: 'mercurio', name: 'Mercurio', type: 'Planeta Rochoso', color: '#b8a48c',
     group, mesh, radius: SCALE.MERCURY_RADIUS, orbitLine: orbit,
     orbitRadius: SCALE.MERCURY_ORBIT, orbitSpeed: 0.30, rotationSpeed: 0.10,
@@ -37,4 +37,11 @@ export function createMercury(scene, textures) {
     ],
     fact: 'E o menor planeta do Sistema Solar e o mais proximo do Sol. A temperatura varia de cerca de 430 \u00B0C de dia a -180 \u00B0C a noite.',
   });
+
+  // texturas reais opcionais: textures/mercurio.(jpg|png) + textures/mercurio_normal.(jpg|png)
+  body.realTextures = [
+    { file: 'mercurio', material: mat, slot: 'map', srgb: true },
+    { file: 'mercurio_normal', material: mat, slot: 'normalMap', srgb: false },
+  ];
+  return body;
 }

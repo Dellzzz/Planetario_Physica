@@ -28,3 +28,12 @@ export const COLORS = {
   neonCyan: '#2ee6ff',
   neonMagenta: '#ff3df0',
 };
+
+// Texturas reais OPCIONAIS por convencao de nome.
+// Se existir, em `basePath`, um arquivo com o nome do astro (ex.: mercurio.jpg)
+// ou com o sufixo _normal (ex.: mercurio_normal.jpg), ele e carregado e aplicado
+// automaticamente; caso contrario, mantem-se a textura procedural.
+export const REAL_TEXTURES = {
+  basePath: 'textures/',
+  extensions: ['jpg', 'png'], // adicione 'webp' aqui se usar esse formato
+};

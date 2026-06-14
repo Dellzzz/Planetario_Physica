@@ -62,5 +62,12 @@ export function createVenus(scene, textures) {
   // a atmosfera gira mais lentamente que a superficie (movimento lento)
   body.atmosphere = atmosphere;
   body.atmosphereSpeed = -0.02;
+
+  // texturas reais opcionais: textures/venus.(jpg|png) + textures/venus_normal.(jpg|png)
+  // (a atmosfera continua procedural; e so a superficie que recebe a textura real)
+  body.realTextures = [
+    { file: 'venus', material: surface.material, slot: 'map', srgb: true },
+    { file: 'venus_normal', material: surface.material, slot: 'normalMap', srgb: false },
+  ];
   return body;
 }

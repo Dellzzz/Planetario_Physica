@@ -6,7 +6,7 @@
 // =============================================================================
 
 import * as THREE from 'three';
-import { SCALE } from './config.js';
+import { SCALE, REAL_TEXTURES } from './config.js';
 import { createScene, createBackground } from './scene.js';
 import { createCamera, CameraFocus } from './camera.js';
 import { createLighting } from './lighting.js';
@@ -33,6 +33,37 @@ function buildTextures() {
     venusSurface: createVenusSurfaceTexture(384),
     venusClouds: createVenusCloudTexture(384),
   };
+}
+
+// Carrega texturas REAIS por convencao de nome e troca a procedural quando existir.
+// Cada corpo declara em `body.realTextures` os arquivos que aceita.
+// Se o arquivo nao existir (404), mantem-se a textura procedural (fallback).
+function applyRealTextures(list) {
+  const loader = new THREE.TextureLoader();
+  for (const b of list) {
+    if (!b.realTextures) continue;
+    for (const slot of b.realTextures) {
+      tryLoadTexture(loader, REAL_TEXTURES.basePath + slot.file, REAL_TEXTURES.extensions, 0, slot);
+    }
+  }
+}
+
+// Tenta cada extensao em ordem; aplica a primeira que carregar.
+function tryLoadTexture(loader, base, exts, i, slot) {
+  if (i >= exts.length) return; // nenhum formato encontrado -> mantem a procedural
+  loader.load(
+    base + '.' + exts[i],
+    (tex) => {
+      // mapa de cor usa sRGB; normal map usa espaco linear (NoColorSpace)
+      tex.colorSpace = slot.srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.anisotropy = 4;
+      slot.material[slot.slot] = tex;
+      slot.material.needsUpdate = true; // recompila o shader (ex.: ativa o normal map)
+    },
+    undefined,
+    () => tryLoadTexture(loader, base, exts, i + 1, slot) // erro/404 -> tenta a proxima extensao
+  );
 }
 
 function onSelect(body) {
@@ -64,6 +95,9 @@ function init() {
   const mercury = createMercury(scene, textures);
   const venus = createVenus(scene, textures);
   bodies = [sun, mercury, venus];
+
+  // tenta substituir as texturas procedurais por arquivos reais em textures/
+  applyRealTextures(bodies);
 
   ui = createUI({
     root: document.getElementById('hud-root'),

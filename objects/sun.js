@@ -48,5 +48,10 @@ export function createSun(scene, textures) {
 
   body.glow = glow; // referencias para a pulsacao no loop principal
   body.halo = halo;
+
+  // textura real opcional: textures/sol.(jpg|png) substitui a procedural
+  body.realTextures = [
+    { file: 'sol', material: core.material, slot: 'map', srgb: true },
+  ];
   return body;
 }
