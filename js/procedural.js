@@ -295,3 +295,89 @@ export function createRingTexture(size = 256) {
   ctx.beginPath(); ctx.arc(size / 2, size / 2, size / 2 - size * 0.08, 0, Math.PI * 2); ctx.stroke();
   return finalizeTexture(canvas, { srgb: true, repeat: false });
 }
+
+// ---------------------------------------------------------------------------
+// TERRA: continentes/oceanos + calotas polares + mapa de rugosidade (oceanos
+// mais reflexivos que os continentes, gerando brilho especular do Sol).
+export function createEarthTextures(size = 512) {
+  const colorC = newCanvas(size, size);
+  const roughC = newCanvas(size, size);
+  const cimg = colorC._ctx.createImageData(size, size);
+  const rimg = roughC._ctx.createImageData(size, size);
+  const land = makeNoise2D(101), detail = makeNoise2D(202), warp = makeNoise2D(303), iceN = makeNoise2D(404);
+  const ocean = [[0.0, [6, 26, 72]], [0.6, [18, 72, 140]], [1.0, [42, 120, 188]]];
+  const landPal = [[0.0, [46, 96, 46]], [0.4, [92, 138, 62]], [0.65, [128, 120, 72]], [0.85, [150, 134, 104]], [1.0, [236, 238, 242]]];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const lat = y / size;
+      const u = x / size * 4, v = y / size * 4;
+      const wx = u + fbm(warp, u, v, 3) * 1.4;
+      const wy = v + fbm(warp, u + 7.1, v + 3.3, 3) * 1.4;
+      const c = fbm(land, wx, wy, 5);
+      let col, rough;
+      if (c > 0.52) { // continente
+        const elev = (c - 0.52) / 0.48;
+        col = ramp(landPal, Math.min(1, elev * 0.92 + (fbm(detail, u * 3, v * 3, 3) - 0.3) * 0.15));
+        rough = 235; // terra: aspero
+      } else {        // oceano
+        col = ramp(ocean, c / 0.52);
+        rough = 55;  // oceano: liso (especular)
+      }
+      // calotas polares (irregulares)
+      const polar = lat < 0.12 ? (0.12 - lat) / 0.12 : (lat > 0.88 ? (lat - 0.88) / 0.12 : 0);
+      const ice = Math.max(0, Math.min(1, polar * 1.4 - 0.15 + fbm(iceN, u * 2, v * 2, 3) * 0.5));
+      if (ice > 0) { col = lerpColor(col, [236, 240, 246], ice); rough = rough + (205 - rough) * ice; }
+      const idx = (y * size + x) * 4;
+      cimg.data[idx] = col[0]; cimg.data[idx + 1] = col[1]; cimg.data[idx + 2] = col[2]; cimg.data[idx + 3] = 255;
+      rimg.data[idx] = rimg.data[idx + 1] = rimg.data[idx + 2] = rough; rimg.data[idx + 3] = 255;
+    }
+  }
+  colorC._ctx.putImageData(cimg, 0, 0);
+  roughC._ctx.putImageData(rimg, 0, 0);
+  return {
+    map: finalizeTexture(colorC, { srgb: true, repeat: true }),
+    roughnessMap: finalizeTexture(roughC, { srgb: false, repeat: true }),
+  };
+}
+
+// TERRA: nuvens (canvas RGBA branco, irregular)
+export function createEarthCloudTexture(size = 512) {
+  const canvas = newCanvas(size, size);
+  const img = canvas._ctx.createImageData(size, size);
+  const base = makeNoise2D(150), warp = makeNoise2D(160);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = x / size * 3, v = y / size * 3;
+      const wx = u + fbm(warp, u, v, 3) * 1.1, wy = v + fbm(warp, u + 4.4, v + 2.2, 3) * 1.1;
+      const a = Math.max(0, Math.min(1, (fbm(base, wx, wy, 5) - 0.52) * 2.2));
+      const idx = (y * size + x) * 4;
+      img.data[idx] = 245; img.data[idx + 1] = 247; img.data[idx + 2] = 250; img.data[idx + 3] = a * 255;
+    }
+  }
+  canvas._ctx.putImageData(img, 0, 0);
+  return finalizeTexture(canvas, { srgb: true, repeat: true });
+}
+
+// ---------------------------------------------------------------------------
+// LUA: superficie cinza muito craterizada + mares lunares (manchas escuras) + normal map
+export function createMoonTextures(size = 384) {
+  const height = createCraterHeight(256, 150, 9); // mais crateras que Mercurio
+  const hdata = height._ctx.getImageData(0, 0, 256, 256).data;
+  const canvas = newCanvas(size, size);
+  const img = canvas._ctx.createImageData(size, size);
+  const maria = makeNoise2D(71), tint = makeNoise2D(44);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const hx = Math.floor(x / size * 256), hy = Math.floor(y / size * 256);
+      const h = hdata[(hy * 256 + hx) * 4] / 255;
+      let base = 85 + h * 120;
+      if (fbm(maria, x / size * 3, y / size * 3, 3) < 0.42) base *= 0.62; // mares lunares escuros
+      base += (fbm(tint, x / size * 12, y / size * 12, 3) - 0.5) * 18;
+      const g = Math.max(0, Math.min(255, base));
+      const idx = (y * size + x) * 4;
+      img.data[idx] = g; img.data[idx + 1] = g; img.data[idx + 2] = g * 0.99; img.data[idx + 3] = 255;
+    }
+  }
+  canvas._ctx.putImageData(img, 0, 0);
+  return { map: finalizeTexture(canvas, { srgb: true, repeat: true }), normalMap: createNormalMap(height, 2.2) };
+}

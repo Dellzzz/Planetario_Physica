@@ -13,10 +13,12 @@ import { createLighting } from './lighting.js';
 import { createControls, createSelection, createSelectionIndicator } from './controls.js';
 import { createUI } from './ui.js';
 import { selectables } from './celestialBody.js';
-import { createSunTexture, createGlowTexture, createMercuryTextures, createVenusSurfaceTexture, createVenusCloudTexture } from './procedural.js';
+import { createSunTexture, createGlowTexture, createMercuryTextures, createVenusSurfaceTexture, createVenusCloudTexture, createEarthTextures, createEarthCloudTexture, createMoonTextures } from './procedural.js';
 import { createSun } from '../objects/sun.js';
 import { createMercury } from '../objects/mercury.js';
 import { createVenus } from '../objects/venus.js';
+import { createEarth } from '../objects/earth.js';
+import { createMoon } from '../objects/moon.js';
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
 
@@ -32,6 +34,9 @@ function buildTextures() {
     mercury: createMercuryTextures(384),
     venusSurface: createVenusSurfaceTexture(384),
     venusClouds: createVenusCloudTexture(384),
+    earth: createEarthTextures(512),
+    earthClouds: createEarthCloudTexture(512),
+    moon: createMoonTextures(384),
   };
 }
 
@@ -94,7 +99,9 @@ function init() {
   sun = createSun(scene, textures);
   const mercury = createMercury(scene, textures);
   const venus = createVenus(scene, textures);
-  bodies = [sun, mercury, venus];
+  const earth = createEarth(scene, textures);
+  const moon = createMoon(textures, earth); // a Lua orbita a Terra
+  bodies = [sun, mercury, venus, earth, moon];
 
   // tenta substituir as texturas procedurais por arquivos reais em textures/
   applyRealTextures(bodies);

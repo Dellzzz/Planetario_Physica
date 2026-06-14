@@ -19,6 +19,11 @@ export const SCALE = {
   VENUS_RADIUS: 1.05,     // Venus maior que Mercurio
   MERCURY_ORBIT: 16,      // raio orbital
   VENUS_ORBIT: 24,
+  EARTH_RADIUS: 1.10,     // Terra um pouco maior que Venus
+  EARTH_ORBIT: 33,
+  EARTH_TILT_DEG: 23.5,   // inclinacao do eixo (causa as estacoes)
+  MOON_RADIUS: 0.30,      // Lua pequena
+  MOON_ORBIT: 3.0,        // orbita da Lua RELATIVA a Terra
 };
 
 export const COLORS = {
