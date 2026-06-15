@@ -13,8 +13,8 @@ export const selectables = [];
 
 export class CelestialBody {
   constructor(cfg) {
-    Object.assign(this, { orbitRadius: 0, orbitSpeed: 0, rotationSpeed: 0, info: [], fact: '' }, cfg);
-    this.angle = Math.random() * Math.PI * 2; // posicao inicial aleatoria na orbita
+    Object.assign(this, { orbitRadius: 0, orbitSpeed: 0, rotationSpeed: 0, eccentricity: 0, argPerihelion: 0, info: [], fact: '' }, cfg);
+    this.angle = Math.random() * Math.PI * 2; // anomalia verdadeira inicial (aleatoria)
 
     const meshes = cfg.selectableMeshes || (cfg.mesh ? [cfg.mesh] : []);
     for (const m of meshes) {
@@ -23,12 +23,20 @@ export class CelestialBody {
     }
   }
 
-  // Atualiza posicao orbital e rotacao propria (chamado a cada frame).
+  // Atualiza posicao orbital (2a lei de Kepler) e rotacao propria (cada frame).
   update(delta) {
     if (this.orbitRadius > 0) {
-      this.angle += this.orbitSpeed * delta;
-      this.group.position.x = Math.cos(this.angle) * this.orbitRadius;
-      this.group.position.z = Math.sin(this.angle) * this.orbitRadius;
+      const a = this.orbitRadius;            // semi-eixo maior
+      const e = this.eccentricity;           // excentricidade (0 = circulo)
+      const p = a * (1 - e * e);             // semi-latus rectum
+      const r = p / (1 + e * Math.cos(this.angle)); // distancia ate o foco (o Sol)
+      // LEI DAS AREAS (2a de Kepler): r^2 * dθ/dt = h (constante).
+      // h e calibrado para manter o periodo medio igual a 2*PI/orbitSpeed.
+      const h = this.orbitSpeed * a * a * Math.sqrt(1 - e * e);
+      this.angle += (h / (r * r)) * delta;   // mais rapido perto do Sol, mais lento longe
+      const w = this.argPerihelion;          // orientacao da elipse (argumento do perielio)
+      this.group.position.x = r * Math.cos(this.angle + w);
+      this.group.position.z = r * Math.sin(this.angle + w);
     }
     if (this.mesh) this.mesh.rotation.y += this.rotationSpeed * delta;
   }
@@ -36,12 +44,14 @@ export class CelestialBody {
   getWorldPosition(target) { return this.group.getWorldPosition(target); }
 }
 
-// Cria uma linha orbital circular visivel no plano XZ.
-export function createOrbitLine(radius, color = 0x6a4a9c, opacity = 0.35, segments = 160) {
+// Cria a linha orbital no plano XZ. Aceita elipse (Sol no foco); e=0 -> circulo.
+export function createOrbitLine(a, color = 0x6a4a9c, opacity = 0.35, eccentricity = 0, argPerihelion = 0, segments = 220) {
+  const p = a * (1 - eccentricity * eccentricity);
   const pts = [];
   for (let i = 0; i <= segments; i++) {
-    const a = (i / segments) * Math.PI * 2;
-    pts.push(new THREE.Vector3(Math.cos(a) * radius, 0, Math.sin(a) * radius));
+    const th = (i / segments) * Math.PI * 2;
+    const r = p / (1 + eccentricity * Math.cos(th));
+    pts.push(new THREE.Vector3(r * Math.cos(th + argPerihelion), 0, r * Math.sin(th + argPerihelion)));
   }
   const geo = new THREE.BufferGeometry().setFromPoints(pts);
   const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
