@@ -69,6 +69,7 @@ html, body {
 .quickbar {
   position: absolute; left: 50%; transform: translateX(-50%); top: 64px;
   display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 92vw;
+  pointer-events: auto;
 }
 .qbtn {
   --accent: var(--neon);
@@ -162,10 +163,23 @@ html, body {
 @media (max-width: 760px) {
   .topbar { padding: 12px 14px; }
   .brand-sub { display: none; }
-  .quickbar { top: auto; bottom: 16px; }
-  .hint { bottom: 84px; font-size: 12px; }
+  .brand-title { font-size: 17px; letter-spacing: 1px; }
+
+  /* selecao rapida no TOPO, em linha rolavel -> sempre visivel (nao fica atras do painel) */
+  .quickbar {
+    top: 70px; bottom: auto; left: 0; right: 0; transform: none;
+    max-width: none; justify-content: flex-start; flex-wrap: nowrap;
+    overflow-x: auto; gap: 8px; padding: 2px 14px 6px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .quickbar::-webkit-scrollbar { display: none; }
+  .qbtn { flex: 0 0 auto; }
+
+  .hint { bottom: 24px; font-size: 12px; }
+
+  /* painel inferior mais baixo, deixando espaco para o astro acima dele */
   .panel {
-    top: auto; bottom: 0; right: 0; left: 0; width: 100%; max-height: 62vh;
+    top: auto; bottom: 0; right: 0; left: 0; width: 100%; max-height: 54vh;
     transform: translateY(110%); border-radius: 20px 20px 0 0;
   }
   .panel.open { transform: translateY(0); }

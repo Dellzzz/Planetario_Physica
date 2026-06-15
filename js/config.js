@@ -24,6 +24,14 @@ export const SCALE = {
   EARTH_TILT_DEG: 23.5,   // inclinacao do eixo (causa as estacoes)
   MOON_RADIUS: 0.30,      // Lua pequena
   MOON_ORBIT: 3.0,        // orbita da Lua RELATIVA a Terra
+  MARS_RADIUS: 0.62,      // Marte menor que a Terra
+  MARS_ORBIT: 42,
+  MARS_TILT_DEG: 25,      // inclinacao parecida com a da Terra
+  // Luas de Marte: tamanhos EXAGERADOS para ficarem visiveis (valores reais na HUD).
+  PHOBOS_RADIUS: 0.18,
+  PHOBOS_ORBIT: 1.4,      // orbita RELATIVA a Marte
+  DEIMOS_RADIUS: 0.14,
+  DEIMOS_ORBIT: 2.3,
 };
 
 export const COLORS = {

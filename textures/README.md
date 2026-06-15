@@ -12,6 +12,11 @@ continua sendo usada (fallback).
 | Sol      | `sol.jpg`            | (nao usa)                   |
 | Mercurio | `mercurio.jpg`       | `mercurio_normal.jpg`       |
 | Venus    | `venus.jpg`          | `venus_normal.jpg`          |
+| Terra    | `terra.jpg`          | `terra_normal.jpg`          |
+| Lua      | `lua.jpg`            | `lua_normal.jpg`            |
+| Marte    | `marte.jpg`          | `marte_normal.jpg`          |
+
+> A Terra ainda aceita uma camada de nuvens separada: `terra_clouds.png` (com transparencia).
 
 - Extensoes aceitas: `.jpg` e `.png` (para `.webp`, adicione em `REAL_TEXTURES.extensions` no `js/config.js`).
 - Pode enviar so o mapa de cor, so o normal, ou os dois.

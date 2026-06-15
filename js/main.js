@@ -13,12 +13,13 @@ import { createLighting } from './lighting.js';
 import { createControls, createSelection, createSelectionIndicator } from './controls.js';
 import { createUI } from './ui.js';
 import { selectables } from './celestialBody.js';
-import { createSunTexture, createGlowTexture, createMercuryTextures, createVenusSurfaceTexture, createVenusCloudTexture, createEarthTextures, createEarthCloudTexture, createMoonTextures } from './procedural.js';
+import { createSunTexture, createGlowTexture, createMercuryTextures, createVenusSurfaceTexture, createVenusCloudTexture, createEarthTextures, createEarthCloudTexture, createMoonTextures, createMarsTextures } from './procedural.js';
 import { createSun } from '../objects/sun.js';
 import { createMercury } from '../objects/mercury.js';
 import { createVenus } from '../objects/venus.js';
 import { createEarth } from '../objects/earth.js';
 import { createMoon } from '../objects/moon.js';
+import { createMars } from '../objects/mars.js';
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
 
@@ -37,6 +38,7 @@ function buildTextures() {
     earth: createEarthTextures(512),
     earthClouds: createEarthCloudTexture(512),
     moon: createMoonTextures(384),
+    mars: createMarsTextures(448),
   };
 }
 
@@ -72,12 +74,14 @@ function tryLoadTexture(loader, base, exts, i, slot) {
 }
 
 function onSelect(body) {
+  cameraFocus.panelOpen = true;
   cameraFocus.follow(body);
   indicator.select(body);
   ui.showInfo(body);
 }
 
 function resetView() {
+  cameraFocus.panelOpen = false;
   cameraFocus.reset();
   indicator.clear();
 }
@@ -101,7 +105,8 @@ function init() {
   const venus = createVenus(scene, textures);
   const earth = createEarth(scene, textures);
   const moon = createMoon(textures, earth); // a Lua orbita a Terra
-  bodies = [sun, mercury, venus, earth, moon];
+  const marsSystem = createMars(scene, textures); // [Marte, Fobos, Deimos] (luas orbitam Marte)
+  bodies = [sun, mercury, venus, earth, moon, ...marsSystem];
 
   // tenta substituir as texturas procedurais por arquivos reais em textures/
   applyRealTextures(bodies);

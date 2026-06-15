@@ -381,3 +381,67 @@ export function createMoonTextures(size = 384) {
   canvas._ctx.putImageData(img, 0, 0);
   return { map: finalizeTexture(canvas, { srgb: true, repeat: true }), normalMap: createNormalMap(height, 2.2) };
 }
+
+// ---------------------------------------------------------------------------
+// MARTE: superficie avermelhada (oxido de ferro) + regioes escuras + calotas + normal map
+export function createMarsTextures(size = 448) {
+  const height = createCraterHeight(256, 60, 17);
+  const hdata = height._ctx.getImageData(0, 0, 256, 256).data;
+  const canvas = newCanvas(size, size);
+  const img = canvas._ctx.createImageData(size, size);
+  const dark = makeNoise2D(33), tint = makeNoise2D(48), iceN = makeNoise2D(60);
+  const pal = [[0.0, [110, 50, 30]], [0.5, [165, 80, 45]], [0.8, [200, 110, 65]], [1.0, [225, 150, 100]]];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const lat = y / size;
+      const hx = Math.floor(x / size * 256), hy = Math.floor(y / size * 256);
+      const h = hdata[(hy * 256 + hx) * 4] / 255;
+      const t = h * 0.7 + fbm(tint, x / size * 7, y / size * 7, 3) * 0.3;
+      let col = ramp(pal, t);
+      const d = fbm(dark, x / size * 2.5, y / size * 2.5, 3); // grandes regioes escuras
+      if (d < 0.4) col = lerpColor(col, [90, 55, 45], (0.4 - d) / 0.4 * 0.6);
+      const polar = lat < 0.07 ? (0.07 - lat) / 0.07 : (lat > 0.93 ? (lat - 0.93) / 0.07 : 0);
+      const ice = Math.max(0, Math.min(1, polar * 1.6 - 0.2 + fbm(iceN, x / size * 3, y / size * 3, 3) * 0.5));
+      if (ice > 0) col = lerpColor(col, [235, 238, 240], ice);
+      const idx = (y * size + x) * 4;
+      img.data[idx] = col[0]; img.data[idx + 1] = col[1]; img.data[idx + 2] = col[2]; img.data[idx + 3] = 255;
+    }
+  }
+  canvas._ctx.putImageData(img, 0, 0);
+  return { map: finalizeTexture(canvas, { srgb: true, repeat: true }), normalMap: createNormalMap(height, 2.0) };
+}
+
+// ---------------------------------------------------------------------------
+// GEOMETRIA IRREGULAR ("batata"): parte de um icosaedro e desloca os vertices por
+// um conjunto de "lumps" (saliencias/reentrancias) em direcoes aleatorias.
+// Usado para corpos sem formato regular: Fobos, Deimos, asteroides, cometas.
+export function createIrregularGeometry(radius = 1, detail = 2, seed = 1, amp = 0.3) {
+  const geo = new THREE.IcosahedronGeometry(radius, detail);
+  const pos = geo.attributes.position;
+  const rand = mulberry32(seed);
+  const lumps = [];
+  for (let i = 0; i < 9; i++) {
+    const th = rand() * Math.PI * 2, ph = Math.acos(2 * rand() - 1);
+    lumps.push({
+      dx: Math.sin(ph) * Math.cos(th), dy: Math.cos(ph), dz: Math.sin(ph) * Math.sin(th),
+      w: (rand() * 2 - 1) * amp, s: 2 + rand() * 4,
+    });
+  }
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    const len = v.length() || 1e-6;
+    const nx = v.x / len, ny = v.y / len, nz = v.z / len;
+    let disp = 0;
+    for (const L of lumps) {
+      const dot = nx * L.dx + ny * L.dy + nz * L.dz;
+      if (dot > 0) disp += L.w * Math.pow(dot, L.s);
+    }
+    disp = Math.max(-0.7, disp); // evita inversao da superficie
+    const r2 = len * (1 + disp);
+    pos.setXYZ(i, nx * r2, ny * r2, nz * r2);
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
