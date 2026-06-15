@@ -98,7 +98,27 @@ html, body {
 }
 .panel.open { transform: translate(0, -50%); opacity: 1; }
 
-.panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.panel-head {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  cursor: pointer; -webkit-user-select: none; user-select: none; padding: 2px 0;
+}
+.panel-head:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; border-radius: 8px; }
+.panel-titles { min-width: 0; }
+.chevron {
+  flex: 0 0 auto; width: 36px; height: 36px; display: grid; place-items: center;
+  font-size: 16px; color: var(--accent); border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 14%, rgba(255,255,255,0.04));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  transition: transform .3s ease;
+}
+.panel.collapsed .chevron { transform: rotate(180deg); }
+
+/* corpo recolhivel (menu suspenso) */
+.panel-body {
+  overflow: hidden; max-height: 72vh; opacity: 1;
+  transition: max-height .38s cubic-bezier(.2,.8,.2,1), opacity .25s ease;
+}
+.panel.collapsed .panel-body { max-height: 0; opacity: 0; }
 .panel-title {
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 26px; color: #fff;
   text-shadow: 0 0 16px color-mix(in srgb, var(--accent) 80%, transparent);
