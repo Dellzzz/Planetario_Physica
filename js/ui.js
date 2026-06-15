@@ -1,8 +1,9 @@
 // =============================================================================
 // ui.js
-// Interface educacional (HUD). Gera todo o DOM dentro de um elemento raiz,
-// exibe as informacoes do astro selecionado e os controles (orbitas, pausar,
-// resetar). Inspirada em observatorios espaciais; adaptada para celular.
+// Interface educacional (HUD). Gera todo o DOM dentro de um elemento raiz.
+// O painel funciona como um MENU SUSPENSO: o cabecalho mostra o nome do astro
+// e uma SETA que expande/recolhe os detalhes. Nao ha "X": para sair do astro,
+// usa-se o botao "resetar" da barra superior.
 // =============================================================================
 
 export function createUI({ root, bodies, onFocus, onReset, onTogglePause, onToggleOrbits }) {
@@ -21,17 +22,17 @@ export function createUI({ root, bodies, onFocus, onReset, onTogglePause, onTogg
     '  <div class="controls">',
     '    <button class="ctrl-btn" id="btn-orbits" title="Mostrar/ocultar orbitas" aria-label="Orbitas">&#9678;</button>',
     '    <button class="ctrl-btn" id="btn-pause" title="Pausar/continuar" aria-label="Pausar">&#10073;&#10073;</button>',
-    '    <button class="ctrl-btn" id="btn-reset" title="Resetar visao" aria-label="Resetar">&#8635;</button>',
+    '    <button class="ctrl-btn" id="btn-reset" title="Voltar (resetar visao)" aria-label="Resetar">&#8635;</button>',
     '  </div>',
     '</div>',
     '<div class="quickbar">' + quick + '</div>',
-    '<aside class="panel" id="panel" aria-live="polite">',
-    '  <div class="panel-head">',
-    '    <div>',
+    '<aside class="panel collapsed" id="panel">',
+    '  <div class="panel-head" id="panel-head" role="button" tabindex="0" aria-expanded="false" aria-label="Expandir ou recolher informacoes do astro">',
+    '    <div class="panel-titles">',
     '      <div class="panel-title" id="p-name">&mdash;</div>',
     '      <div class="panel-type" id="p-type">&mdash;</div>',
     '    </div>',
-    '    <button class="close-btn" id="p-close" aria-label="Fechar">&times;</button>',
+    '    <span class="chevron" aria-hidden="true">&#9662;</span>',
     '  </div>',
     '  <div class="panel-body">',
     '    <div class="info-grid" id="p-info"></div>',
@@ -46,13 +47,21 @@ export function createUI({ root, bodies, onFocus, onReset, onTogglePause, onTogg
 
   const $ = (s) => root.querySelector(s);
   const panel = $('#panel');
+  const head = $('#panel-head');
   const byId = Object.fromEntries(bodies.map((b) => [b.id, b]));
   let paused = false, orbitsVisible = true, hintShown = true;
+
+  const isMobile = () => window.innerWidth <= 760;
 
   function hideHint() { if (hintShown) { hintShown = false; $('#hint').classList.add('gone'); } }
   function setActiveButton(id) {
     root.querySelectorAll('.qbtn').forEach((btn) => btn.classList.toggle('active', btn.dataset.id === id));
   }
+  function setCollapsed(c) {
+    panel.classList.toggle('collapsed', c);
+    head.setAttribute('aria-expanded', String(!c));
+  }
+  function toggleCollapsed() { setCollapsed(!panel.classList.contains('collapsed')); }
 
   function showInfo(body) {
     panel.style.setProperty('--accent', body.color);
@@ -63,17 +72,31 @@ export function createUI({ root, bodies, onFocus, onReset, onTogglePause, onTogg
     ).join('');
     $('#p-fact').textContent = body.fact;
     panel.classList.add('open');
+    // no celular abre RECOLHIDO (so o nome) para o astro ficar visivel; no desktop, expandido
+    setCollapsed(isMobile());
     setActiveButton(body.id);
     hideHint();
   }
 
-  function hide() { panel.classList.remove('open'); setActiveButton(null); }
+  function hide() {
+    panel.classList.remove('open');
+    setCollapsed(true);
+    setActiveButton(null);
+  }
 
-  // eventos
+  // ---- eventos ----
   root.querySelectorAll('.qbtn').forEach((btn) =>
     btn.addEventListener('click', () => onFocus(byId[btn.dataset.id])));
-  $('#p-close').addEventListener('click', () => { hide(); onReset(); });
+
+  // cabecalho do painel = abre/recolhe o menu suspenso
+  head.addEventListener('click', toggleCollapsed);
+  head.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapsed(); }
+  });
+
+  // "voltar": resetar a visao e fechar o painel
   $('#btn-reset').addEventListener('click', () => { hide(); onReset(); });
+
   $('#btn-pause').addEventListener('click', () => {
     paused = !paused;
     $('#btn-pause').innerHTML = paused ? '&#9654;' : '&#10073;&#10073;';
