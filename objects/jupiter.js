@@ -15,7 +15,7 @@ import { CelestialBody, createOrbitLine } from '../js/celestialBody.js';
 
 // --- escala (educativa) ------------------------------------------------------
 const J_RADIUS = 3.0;   // muito maior que os rochosos, menor que o Sol
-const J_ORBIT = 56;     // alem de Marte
+const J_ORBIT = 96;     // alem de Marte
 const J_TILT = 3.1;     // inclinacao pequena
 const J_ECC = 0.049;    // excentricidade (lei das areas)
 const J_ARG = 1.0;      // orientacao da elipse
@@ -247,7 +247,7 @@ export function createJupiter(scene) {
   const jupiter = new CelestialBody({
     id: 'jupiter', name: 'J\u00fapiter', type: 'Gigante Gasoso', color: '#e0b07a',
     group, mesh: surface, radius: J_RADIUS, orbitLine: orbit,
-    orbitRadius: J_ORBIT, orbitSpeed: 0.07, rotationSpeed: 0.5, // gira rapido (dia curto)
+    orbitRadius: J_ORBIT, orbitSpeed: 0.045, rotationSpeed: 0.62, // gira rapido (dia curto)
     eccentricity: J_ECC, argPerihelion: J_ARG,
     info: [
       ['Diametro', '139.820 km'],
@@ -263,25 +263,25 @@ export function createJupiter(scene) {
 
   const io = createGalileanMoon(jupiter, {
     id: 'io', name: 'Io', color: '#e8d44a', textures: ioTex, orbitColor: 0x8a7a4a,
-    radius: 0.18, orbitRadius: 3.9, orbitSpeed: 1.3,
+    radius: 0.18, orbitRadius: 4.2, orbitSpeed: 1.3,
     info: [['Diametro', '3.643 km'], ['Translacao', '1,77 dias'], ['Gravidade', '1,80 m/s\u00B2'], ['Destaque', 'corpo mais vulcanico do S.S.']],
     fact: 'O corpo com mais vulcoes ativos do Sistema Solar. Seu calor interno vem do aquecimento de mare provocado pela gravidade de Jupiter.',
   });
   const europa = createGalileanMoon(jupiter, {
     id: 'europa', name: 'Europa', color: '#cfd8e0', textures: euTex, orbitColor: 0x6a7a8a,
-    radius: 0.16, orbitRadius: 5.1, orbitSpeed: 0.95,
+    radius: 0.16, orbitRadius: 5.8, orbitSpeed: 0.95,
     info: [['Diametro', '3.122 km'], ['Translacao', '3,55 dias'], ['Gravidade', '1,31 m/s\u00B2'], ['Destaque', 'oceano liquido sob o gelo']],
     fact: 'Sua superficie de gelo e a mais lisa do Sistema Solar e esconde um oceano de agua liquida salgada -- um dos principais candidatos a abrigar vida.',
   });
   const ganimedes = createGalileanMoon(jupiter, {
     id: 'ganimedes', name: 'Ganimedes', color: '#9a8c78', textures: ganTex, orbitColor: 0x6a6258,
-    radius: 0.26, orbitRadius: 6.6, orbitSpeed: 0.65,
+    radius: 0.26, orbitRadius: 7.8, orbitSpeed: 0.65,
     info: [['Diametro', '5.268 km'], ['Translacao', '7,15 dias'], ['Gravidade', '1,43 m/s\u00B2'], ['Destaque', 'maior lua do Sistema Solar']],
     fact: 'A maior lua do Sistema Solar -- maior ate que o planeta Mercurio. E a unica lua conhecida com campo magnetico proprio.',
   });
   const calisto = createGalileanMoon(jupiter, {
     id: 'calisto', name: 'Calisto', color: '#6e6358', textures: calTex, orbitColor: 0x55504a,
-    radius: 0.24, orbitRadius: 8.4, orbitSpeed: 0.45,
+    radius: 0.24, orbitRadius: 10.0, orbitSpeed: 0.45,
     info: [['Diametro', '4.821 km'], ['Translacao', '16,7 dias'], ['Gravidade', '1,24 m/s\u00B2'], ['Destaque', 'a mais craterizada do S.S.']],
     fact: 'Uma das superficies mais antigas e craterizadas do Sistema Solar, praticamente saturada de crateras de impacto.',
   });

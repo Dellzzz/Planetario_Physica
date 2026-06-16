@@ -27,7 +27,7 @@ export function createMercury(scene, textures) {
   const body = new CelestialBody({
     id: 'mercurio', name: 'Mercurio', type: 'Planeta Rochoso', color: '#b8a48c',
     group, mesh, radius: SCALE.MERCURY_RADIUS, orbitLine: orbit,
-    orbitRadius: SCALE.MERCURY_ORBIT, orbitSpeed: 0.30, rotationSpeed: 0.10,
+    orbitRadius: SCALE.MERCURY_ORBIT, orbitSpeed: 0.30, rotationSpeed: 0.05,
     eccentricity: 0.206, argPerihelion: 0.5,
     info: [
       ['Diametro', '4.879 km'],

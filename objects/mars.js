@@ -62,7 +62,7 @@ export function createMars(scene, textures) {
   const mars = new CelestialBody({
     id: 'marte', name: 'Marte', type: 'Planeta Rochoso', color: '#e2703a',
     group, mesh: surface, radius: SCALE.MARS_RADIUS, orbitLine: orbit,
-    orbitRadius: SCALE.MARS_ORBIT, orbitSpeed: 0.13, rotationSpeed: 0.29,
+    orbitRadius: SCALE.MARS_ORBIT, orbitSpeed: 0.13, rotationSpeed: 0.26,
     eccentricity: 0.093, argPerihelion: 3.4,
     info: [
       ['Diametro', '6.779 km'],

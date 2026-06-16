@@ -47,7 +47,7 @@ export function createVenus(scene, textures) {
     id: 'venus', name: 'Venus', type: 'Planeta Rochoso', color: '#f0c067',
     group, mesh: surface, radius: SCALE.VENUS_RADIUS, orbitLine: orbit,
     orbitRadius: SCALE.VENUS_ORBIT, orbitSpeed: 0.22, eccentricity: 0.007, argPerihelion: 1.3,
-    rotationSpeed: -0.04, // rotacao RETROGRADA (negativa)
+    rotationSpeed: -0.02, // rotacao RETROGRADA, lentissima (Venus)
     selectableMeshes: [surface, atmosphere], // tocar na atmosfera tambem seleciona
     info: [
       ['Diametro', '12.104 km'],
