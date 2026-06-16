@@ -87,7 +87,7 @@ export function createDecorations(scene) {
     pivot.add(tail);
 
     scene.add(pivot);
-    return { a: cfg.a, e: cfg.e, w: cfg.w, speed: cfg.speed, inc: cfg.inc, angle: Math.random() * 6.283, pivot, tail };
+    return { a: cfg.a, e: cfg.e, w: cfg.w, speed: cfg.speed, inc: cfg.inc, angle: Math.random() * 6.283, pivot, tail, prev: null };
   }
 
   const comets = [
@@ -106,10 +106,19 @@ export function createDecorations(scene) {
       const xp = r * Math.cos(c.angle + c.w);
       const zp = r * Math.sin(c.angle + c.w);
       c.pivot.position.set(xp, zp * Math.sin(c.inc), zp * Math.cos(c.inc)); // plano inclinado
-      // cauda aponta de volta para longe do Sol (origem)
-      dir.copy(c.pivot.position).normalize();
-      tq.setFromUnitVectors(up, dir);
-      c.tail.quaternion.copy(tq);
+      // a cauda fica ATRAS do movimento (aponta no sentido oposto a velocidade),
+      // entao o cometa parece "voar de frente" em vez de andar de lado
+      if (c.prev) {
+        dir.copy(c.prev).sub(c.pivot.position); // prev - atual = sentido contrario ao movimento
+        if (dir.lengthSq() > 1e-8) {
+          dir.normalize();
+          tq.setFromUnitVectors(up, dir);
+          c.tail.quaternion.copy(tq);
+        }
+        c.prev.copy(c.pivot.position);
+      } else {
+        c.prev = c.pivot.position.clone();
+      }
     }
   });
 
