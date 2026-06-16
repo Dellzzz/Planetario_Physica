@@ -7,7 +7,7 @@ import * as THREE from 'three';
 
 export function createCamera() {
   const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 6000);
-  camera.position.set(0, 18, 52);
+  camera.position.set(0, 22, 64);
   return camera;
 }
 
@@ -24,7 +24,7 @@ export class CameraFocus {
     this.desiredDist = 0;
     this._p = new THREE.Vector3();
     this._dir = new THREE.Vector3();
-    this.home = { pos: new THREE.Vector3(0, 18, 52), target: new THREE.Vector3(0, 0, 0) };
+    this.home = { pos: new THREE.Vector3(0, 22, 64), target: new THREE.Vector3(0, 0, 0) };
   }
 
   follow(body) {

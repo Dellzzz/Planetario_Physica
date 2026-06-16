@@ -21,11 +21,12 @@ import { createEarth } from '../objects/earth.js';
 import { createMoon } from '../objects/moon.js';
 import { createMars } from '../objects/mars.js';
 import { createJupiter } from '../objects/jupiter.js';
+import { createDecorations } from '../objects/decorations.js';
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
 
 let scene, renderer, camera, controls, cameraFocus, ui;
-let bodies = [], sun = null, sunLight = null, bg = null, indicator = null;
+let bodies = [], sun = null, sunLight = null, bg = null, indicator = null, decorations = null;
 const clock = new THREE.Clock();
 
 // Gera todas as texturas procedurais (etapa "pesada" do carregamento).
@@ -109,6 +110,7 @@ function init() {
   const marsSystem = createMars(scene, textures); // [Marte, Fobos, Deimos] (luas orbitam Marte)
   const jupiterSystem = createJupiter(scene); // [Jupiter, Io, Europa, Ganimedes, Calisto]
   bodies = [sun, mercury, venus, earth, moon, ...marsSystem, ...jupiterSystem];
+  decorations = createDecorations(scene); // cinturao de asteroides, meteoroides e cometas (so enfeite)
 
   // tenta substituir as texturas procedurais por arquivos reais em textures/
   applyRealTextures(bodies);
@@ -167,6 +169,7 @@ function animate() {
     }
     // movimento lento do fundo (paralaxe)
     if (bg) { bg.near.rotation.y += delta * 0.006; bg.far.rotation.y += delta * 0.0035; }
+    if (decorations) decorations.update(delta);
   }
 
   cameraFocus.update(delta);
