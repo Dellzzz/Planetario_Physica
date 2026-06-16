@@ -1,0 +1,477 @@
+// =============================================================================
+// procedural.js
+// Geracao PROCEDURAL de texturas (sem nenhum arquivo de imagem externo).
+// Todas as texturas (Sol, planetas, atmosfera, estrelas, nebulosas) sao
+// desenhadas em <canvas> no carregamento e convertidas em THREE.Texture.
+// Vantagens: roda sem baixar imagens, evita problemas de CORS e e leve.
+//
+// Para usar texturas REAIS (ex.: NASA) no futuro, basta trocar o "map" do
+// material por: new THREE.TextureLoader().load('textures/arquivo.jpg').
+// =============================================================================
+
+import * as THREE from 'three';
+
+// --- Gerador pseudoaleatorio deterministico (mulberry32) ---------------------
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// --- Ruido de valor 2D suave (value noise), tile de 256 ----------------------
+function makeNoise2D(seed) {
+  const grid = 256;
+  const rand = mulberry32(seed);
+  const vals = new Float32Array(grid * grid);
+  for (let i = 0; i < vals.length; i++) vals[i] = rand();
+  const smooth = (t) => t * t * (3 - 2 * t);
+  return function (x, y) {
+    const xi = Math.floor(x), yi = Math.floor(y);
+    const xf = x - xi, yf = y - yi;
+    const x0 = ((xi % grid) + grid) % grid;
+    const y0 = ((yi % grid) + grid) % grid;
+    const x1 = (x0 + 1) % grid, y1 = (y0 + 1) % grid;
+    const v00 = vals[y0 * grid + x0], v10 = vals[y0 * grid + x1];
+    const v01 = vals[y1 * grid + x0], v11 = vals[y1 * grid + x1];
+    const u = smooth(xf), v = smooth(yf);
+    const a = v00 + (v10 - v00) * u;
+    const b = v01 + (v11 - v01) * u;
+    return a + (b - a) * v;
+  };
+}
+
+// Soma fractal de oitavas (fractal Brownian motion)
+function fbm(noise, x, y, octaves = 5, lacunarity = 2, gain = 0.5) {
+  let amp = 0.5, freq = 1, sum = 0, norm = 0;
+  for (let i = 0; i < octaves; i++) {
+    sum += amp * noise(x * freq, y * freq);
+    norm += amp; amp *= gain; freq *= lacunarity;
+  }
+  return sum / norm;
+}
+
+// Interpolacao linear entre cores [r,g,b] e mapeamento por rampa
+function lerpColor(c1, c2, t) {
+  return [c1[0] + (c2[0] - c1[0]) * t, c1[1] + (c2[1] - c1[1]) * t, c1[2] + (c2[2] - c1[2]) * t];
+}
+function ramp(stops, t) {
+  t = Math.max(0, Math.min(1, t));
+  for (let i = 0; i < stops.length - 1; i++) {
+    const a = stops[i], b = stops[i + 1];
+    if (t >= a[0] && t <= b[0]) {
+      const k = (t - a[0]) / ((b[0] - a[0]) || 1);
+      return lerpColor(a[1], b[1], k);
+    }
+  }
+  return stops[stops.length - 1][1];
+}
+
+function newCanvas(w, h, readFrequently = false) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c._ctx = c.getContext('2d', { willReadFrequently: readFrequently });
+  return c;
+}
+
+function finalizeTexture(canvas, { srgb = true, repeat = true } = {}) {
+  const tex = new THREE.CanvasTexture(canvas);
+  if (srgb) tex.colorSpace = THREE.SRGBColorSpace;
+  if (repeat) { tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; }
+  tex.needsUpdate = true;
+  return tex;
+}
+
+// ---------------------------------------------------------------------------
+// SOL: superficie incandescente
+export function createSunTexture(size = 512) {
+  const canvas = newCanvas(size, size);
+  const ctx = canvas._ctx;
+  const img = ctx.createImageData(size, size);
+  const n1 = makeNoise2D(7), n2 = makeNoise2D(91);
+  const fire = [
+    [0.00, [60, 12, 0]], [0.35, [180, 45, 0]], [0.55, [240, 90, 10]],
+    [0.75, [255, 170, 40]], [0.92, [255, 225, 130]], [1.00, [255, 248, 220]],
+  ];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = (x / size) * 7, v = (y / size) * 7;
+      let t = fbm(n1, u, v, 5);
+      t += (fbm(n2, u * 3.1, v * 3.1, 3) - 0.5) * 0.45; // granulacao fina
+      t = Math.max(0, Math.min(1, t * 1.15));
+      const col = ramp(fire, t);
+      const idx = (y * size + x) * 4;
+      img.data[idx] = col[0]; img.data[idx + 1] = col[1]; img.data[idx + 2] = col[2]; img.data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return finalizeTexture(canvas, { srgb: true, repeat: true });
+}
+
+// Halo/brilho radial (para sprites com blending aditivo)
+export function createGlowTexture(size = 256) {
+  const canvas = newCanvas(size, size);
+  const ctx = canvas._ctx;
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0.0, 'rgba(255,240,210,1)');
+  g.addColorStop(0.3, 'rgba(255,150,40,0.55)');
+  g.addColorStop(1.0, 'rgba(255,120,20,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+  return finalizeTexture(canvas, { srgb: true, repeat: false });
+}
+
+// ---------------------------------------------------------------------------
+// Mapa de altura com crateras (base para Mercurio)
+function createCraterHeight(size = 256, craterCount = 90, seed = 3) {
+  const canvas = newCanvas(size, size, true);
+  const ctx = canvas._ctx;
+  const img = ctx.createImageData(size, size);
+  const n = makeNoise2D(seed);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const h = 110 + fbm(n, x / size * 6, y / size * 6, 4) * 70; // relevo suave de base
+      const idx = (y * size + x) * 4;
+      img.data[idx] = img.data[idx + 1] = img.data[idx + 2] = h;
+      img.data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  // estampar crateras: depressao no centro + borda elevada
+  const rand = mulberry32(seed * 17 + 1);
+  for (let i = 0; i < craterCount; i++) {
+    const cx = rand() * size, cy = rand() * size;
+    const r = 4 + rand() * (size * 0.06);
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0.0, 'rgba(40,40,40,0.9)');
+    g.addColorStop(0.7, 'rgba(70,70,70,0.5)');
+    g.addColorStop(0.82, 'rgba(210,210,210,0.55)');
+    g.addColorStop(1.0, 'rgba(128,128,128,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  }
+  return canvas;
+}
+
+// Converte um mapa de altura (cinza) em NORMAL MAP via Sobel
+export function createNormalMap(heightCanvas, strength = 2.4) {
+  const size = heightCanvas.width;
+  const src = heightCanvas._ctx.getImageData(0, 0, size, size).data;
+  const out = newCanvas(size, size);
+  const octx = out._ctx;
+  const dst = octx.createImageData(size, size);
+  const H = (x, y) => {
+    const xx = ((x % size) + size) % size, yy = ((y % size) + size) % size;
+    return src[(yy * size + xx) * 4] / 255;
+  };
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = (H(x - 1, y) - H(x + 1, y)) * strength;
+      const dy = (H(x, y - 1) - H(x, y + 1)) * strength;
+      const len = Math.sqrt(dx * dx + dy * dy + 1);
+      const idx = (y * size + x) * 4;
+      dst.data[idx] = (dx / len * 0.5 + 0.5) * 255;
+      dst.data[idx + 1] = (dy / len * 0.5 + 0.5) * 255;
+      dst.data[idx + 2] = (1 / len * 0.5 + 0.5) * 255;
+      dst.data[idx + 3] = 255;
+    }
+  }
+  octx.putImageData(dst, 0, 0);
+  return finalizeTexture(out, { srgb: false, repeat: true }); // normal map NAO usa sRGB
+}
+
+// Texturas de Mercurio (cor derivada do mapa de altura + normal map)
+export function createMercuryTextures(size = 384) {
+  const height = createCraterHeight(256, 90, 3);
+  const hdata = height._ctx.getImageData(0, 0, 256, 256).data;
+  const canvas = newCanvas(size, size);
+  const ctx = canvas._ctx;
+  const img = ctx.createImageData(size, size);
+  const tint = makeNoise2D(55);
+  const palette = [[0.0, [60, 55, 50]], [0.5, [120, 110, 100]], [0.8, [165, 150, 135]], [1.0, [200, 188, 172]]];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const hx = Math.floor(x / size * 256), hy = Math.floor(y / size * 256);
+      const h = hdata[(hy * 256 + hx) * 4] / 255;
+      const tn = fbm(tint, x / size * 10, y / size * 10, 3) * 0.15;
+      const col = ramp(palette, Math.max(0, Math.min(1, h + tn - 0.05)));
+      const idx = (y * size + x) * 4;
+      img.data[idx] = col[0]; img.data[idx + 1] = col[1]; img.data[idx + 2] = col[2]; img.data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return { map: finalizeTexture(canvas, { srgb: true, repeat: true }), normalMap: createNormalMap(height, 2.4) };
+}
+
+// ---------------------------------------------------------------------------
+// VENUS: superficie (domain warping para redemoinhos)
+export function createVenusSurfaceTexture(size = 384) {
+  const canvas = newCanvas(size, size);
+  const ctx = canvas._ctx;
+  const img = ctx.createImageData(size, size);
+  const base = makeNoise2D(21), warp = makeNoise2D(34);
+  const pal = [[0.0, [120, 80, 30]], [0.4, [180, 130, 60]], [0.7, [220, 180, 110]], [1.0, [245, 225, 175]]];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = x / size * 5, v = y / size * 5;
+      const wx = u + fbm(warp, u, v, 3) * 2.2;
+      const wy = v + fbm(warp, u + 5.2, v + 1.3, 3) * 2.2;
+      const col = ramp(pal, fbm(base, wx, wy, 5));
+      const idx = (y * size + x) * 4;
+      img.data[idx] = col[0]; img.data[idx + 1] = col[1]; img.data[idx + 2] = col[2]; img.data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return finalizeTexture(canvas, { srgb: true, repeat: true });
+}
+
+// VENUS: nuvens/atmosfera translucida (canvas RGBA com transparencia)
+export function createVenusCloudTexture(size = 384) {
+  const canvas = newCanvas(size, size);
+  const ctx = canvas._ctx;
+  const img = ctx.createImageData(size, size);
+  const base = makeNoise2D(77), warp = makeNoise2D(88);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = x / size * 4, v = y / size * 4;
+      const band = 0.5 + 0.5 * Math.sin(v * 3.0 + fbm(warp, u, v, 3) * 3.0); // bandas densas
+      const t = fbm(base, u + band, v, 4) * 0.6 + band * 0.4;
+      const alpha = Math.max(0, Math.min(1, (t - 0.35) * 1.8));
+      const shade = 200 + t * 55;
+      const idx = (y * size + x) * 4;
+      img.data[idx] = shade; img.data[idx + 1] = shade * 0.92; img.data[idx + 2] = shade * 0.7;
+      img.data[idx + 3] = alpha * 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return finalizeTexture(canvas, { srgb: true, repeat: true });
+}
+
+// ---------------------------------------------------------------------------
+// Estrela pontual (sprite redondo para o campo de estrelas)
+export function createStarTexture(size = 64) {
+  const canvas = newCanvas(size, size);
+  const ctx = canvas._ctx;
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0.0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.25, 'rgba(255,255,255,0.85)');
+  g.addColorStop(1.0, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+  return finalizeTexture(canvas, { srgb: true, repeat: false });
+}
+
+// Nebulosa suave (sprite colorido, baixa opacidade)
+export function createNebulaTexture(size = 256, rgb = [120, 60, 200]) {
+  const canvas = newCanvas(size, size);
+  const ctx = canvas._ctx;
+  const img = ctx.createImageData(size, size);
+  const n = makeNoise2D(Math.floor(rgb[0] + rgb[1] * 3 + rgb[2] * 7));
+  const cx = size / 2, cy = size / 2;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = (x - cx) / (size / 2), dy = (y - cy) / (size / 2);
+      const falloff = Math.max(0, 1 - Math.sqrt(dx * dx + dy * dy));
+      const a = Math.max(0, falloff * falloff * fbm(n, x / size * 3, y / size * 3, 4));
+      const idx = (y * size + x) * 4;
+      img.data[idx] = rgb[0]; img.data[idx + 1] = rgb[1]; img.data[idx + 2] = rgb[2];
+      img.data[idx + 3] = a * 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return finalizeTexture(canvas, { srgb: true, repeat: false });
+}
+
+// Anel de selecao (sprite com blending aditivo)
+export function createRingTexture(size = 256) {
+  const canvas = newCanvas(size, size);
+  const ctx = canvas._ctx;
+  ctx.clearRect(0, 0, size, size);
+  ctx.strokeStyle = 'rgba(46,230,255,0.95)';
+  ctx.lineWidth = size * 0.03;
+  ctx.shadowColor = 'rgba(46,230,255,0.9)';
+  ctx.shadowBlur = size * 0.08;
+  ctx.beginPath(); ctx.arc(size / 2, size / 2, size / 2 - size * 0.08, 0, Math.PI * 2); ctx.stroke();
+  return finalizeTexture(canvas, { srgb: true, repeat: false });
+}
+
+// ---------------------------------------------------------------------------
+// TERRA: continentes/oceanos + calotas polares + mapa de rugosidade (oceanos
+// mais reflexivos que os continentes, gerando brilho especular do Sol).
+export function createEarthTextures(size = 512) {
+  const colorC = newCanvas(size, size);
+  const roughC = newCanvas(size, size);
+  const cimg = colorC._ctx.createImageData(size, size);
+  const rimg = roughC._ctx.createImageData(size, size);
+  const land = makeNoise2D(101), detail = makeNoise2D(202), warp = makeNoise2D(303), iceN = makeNoise2D(404);
+  const ocean = [[0.0, [6, 26, 72]], [0.6, [18, 72, 140]], [1.0, [42, 120, 188]]];
+  const landPal = [[0.0, [46, 96, 46]], [0.4, [92, 138, 62]], [0.65, [128, 120, 72]], [0.85, [150, 134, 104]], [1.0, [236, 238, 242]]];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const lat = y / size;
+      const u = x / size * 4, v = y / size * 4;
+      const wx = u + fbm(warp, u, v, 3) * 1.4;
+      const wy = v + fbm(warp, u + 7.1, v + 3.3, 3) * 1.4;
+      const c = fbm(land, wx, wy, 5);
+      let col, rough;
+      if (c > 0.52) { // continente
+        const elev = (c - 0.52) / 0.48;
+        col = ramp(landPal, Math.min(1, elev * 0.92 + (fbm(detail, u * 3, v * 3, 3) - 0.3) * 0.15));
+        rough = 235; // terra: aspero
+      } else {        // oceano
+        col = ramp(ocean, c / 0.52);
+        rough = 55;  // oceano: liso (especular)
+      }
+      // calotas polares (irregulares)
+      const polar = lat < 0.12 ? (0.12 - lat) / 0.12 : (lat > 0.88 ? (lat - 0.88) / 0.12 : 0);
+      const ice = Math.max(0, Math.min(1, polar * 1.4 - 0.15 + fbm(iceN, u * 2, v * 2, 3) * 0.5));
+      if (ice > 0) { col = lerpColor(col, [236, 240, 246], ice); rough = rough + (205 - rough) * ice; }
+      const idx = (y * size + x) * 4;
+      cimg.data[idx] = col[0]; cimg.data[idx + 1] = col[1]; cimg.data[idx + 2] = col[2]; cimg.data[idx + 3] = 255;
+      rimg.data[idx] = rimg.data[idx + 1] = rimg.data[idx + 2] = rough; rimg.data[idx + 3] = 255;
+    }
+  }
+  colorC._ctx.putImageData(cimg, 0, 0);
+  roughC._ctx.putImageData(rimg, 0, 0);
+  return {
+    map: finalizeTexture(colorC, { srgb: true, repeat: true }),
+    roughnessMap: finalizeTexture(roughC, { srgb: false, repeat: true }),
+  };
+}
+
+// TERRA: nuvens (canvas RGBA branco, irregular)
+export function createEarthCloudTexture(size = 512) {
+  const canvas = newCanvas(size, size);
+  const img = canvas._ctx.createImageData(size, size);
+  const base = makeNoise2D(150), warp = makeNoise2D(160);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = x / size * 3, v = y / size * 3;
+      const wx = u + fbm(warp, u, v, 3) * 1.1, wy = v + fbm(warp, u + 4.4, v + 2.2, 3) * 1.1;
+      const a = Math.max(0, Math.min(1, (fbm(base, wx, wy, 5) - 0.52) * 2.2));
+      const idx = (y * size + x) * 4;
+      img.data[idx] = 245; img.data[idx + 1] = 247; img.data[idx + 2] = 250; img.data[idx + 3] = a * 255;
+    }
+  }
+  canvas._ctx.putImageData(img, 0, 0);
+  return finalizeTexture(canvas, { srgb: true, repeat: true });
+}
+
+// ---------------------------------------------------------------------------
+// LUA: superficie cinza muito craterizada + mares lunares (manchas escuras) + normal map
+export function createMoonTextures(size = 384) {
+  const height = createCraterHeight(256, 150, 9); // mais crateras que Mercurio
+  const hdata = height._ctx.getImageData(0, 0, 256, 256).data;
+  const canvas = newCanvas(size, size);
+  const img = canvas._ctx.createImageData(size, size);
+  const maria = makeNoise2D(71), tint = makeNoise2D(44);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const hx = Math.floor(x / size * 256), hy = Math.floor(y / size * 256);
+      const h = hdata[(hy * 256 + hx) * 4] / 255;
+      let base = 85 + h * 120;
+      if (fbm(maria, x / size * 3, y / size * 3, 3) < 0.42) base *= 0.62; // mares lunares escuros
+      base += (fbm(tint, x / size * 12, y / size * 12, 3) - 0.5) * 18;
+      const g = Math.max(0, Math.min(255, base));
+      const idx = (y * size + x) * 4;
+      img.data[idx] = g; img.data[idx + 1] = g; img.data[idx + 2] = g * 0.99; img.data[idx + 3] = 255;
+    }
+  }
+  canvas._ctx.putImageData(img, 0, 0);
+  return { map: finalizeTexture(canvas, { srgb: true, repeat: true }), normalMap: createNormalMap(height, 2.2) };
+}
+
+// ---------------------------------------------------------------------------
+// MARTE: superficie avermelhada (oxido de ferro) + regioes escuras + calotas + normal map
+export function createMarsTextures(size = 448) {
+  const height = createCraterHeight(256, 60, 17);
+  const hdata = height._ctx.getImageData(0, 0, 256, 256).data;
+  const canvas = newCanvas(size, size);
+  const img = canvas._ctx.createImageData(size, size);
+  const dark = makeNoise2D(33), tint = makeNoise2D(48), iceN = makeNoise2D(60);
+  const pal = [[0.0, [110, 50, 30]], [0.5, [165, 80, 45]], [0.8, [200, 110, 65]], [1.0, [225, 150, 100]]];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const lat = y / size;
+      const hx = Math.floor(x / size * 256), hy = Math.floor(y / size * 256);
+      const h = hdata[(hy * 256 + hx) * 4] / 255;
+      const t = h * 0.7 + fbm(tint, x / size * 7, y / size * 7, 3) * 0.3;
+      let col = ramp(pal, t);
+      const d = fbm(dark, x / size * 2.5, y / size * 2.5, 3); // grandes regioes escuras
+      if (d < 0.4) col = lerpColor(col, [90, 55, 45], (0.4 - d) / 0.4 * 0.6);
+      const polar = lat < 0.07 ? (0.07 - lat) / 0.07 : (lat > 0.93 ? (lat - 0.93) / 0.07 : 0);
+      const ice = Math.max(0, Math.min(1, polar * 1.6 - 0.2 + fbm(iceN, x / size * 3, y / size * 3, 3) * 0.5));
+      if (ice > 0) col = lerpColor(col, [235, 238, 240], ice);
+      const idx = (y * size + x) * 4;
+      img.data[idx] = col[0]; img.data[idx + 1] = col[1]; img.data[idx + 2] = col[2]; img.data[idx + 3] = 255;
+    }
+  }
+  canvas._ctx.putImageData(img, 0, 0);
+  return { map: finalizeTexture(canvas, { srgb: true, repeat: true }), normalMap: createNormalMap(height, 2.0) };
+}
+
+// ---------------------------------------------------------------------------
+// GEOMETRIA IRREGULAR ("batata"): parte de um icosaedro e desloca os vertices por
+// um conjunto de "lumps" (saliencias/reentrancias) em direcoes aleatorias.
+// Usado para corpos sem formato regular: Fobos, Deimos, asteroides, cometas.
+export function createIrregularGeometry(radius = 1, detail = 2, seed = 1, amp = 0.3) {
+  const geo = new THREE.IcosahedronGeometry(radius, detail);
+  const pos = geo.attributes.position;
+  const rand = mulberry32(seed);
+  const lumps = [];
+  for (let i = 0; i < 9; i++) {
+    const th = rand() * Math.PI * 2, ph = Math.acos(2 * rand() - 1);
+    lumps.push({
+      dx: Math.sin(ph) * Math.cos(th), dy: Math.cos(ph), dz: Math.sin(ph) * Math.sin(th),
+      w: (rand() * 2 - 1) * amp, s: 2 + rand() * 4,
+    });
+  }
+  const uv = geo.attributes.uv;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    const len = v.length() || 1e-6;
+    const nx = v.x / len, ny = v.y / len, nz = v.z / len;
+    let disp = 0;
+    for (const L of lumps) {
+      const dot = nx * L.dx + ny * L.dy + nz * L.dz;
+      if (dot > 0) disp += L.w * Math.pow(dot, L.s);
+    }
+    disp = Math.max(-0.7, disp); // evita inversao da superficie
+    const r2 = len * (1 + disp);
+    pos.setXYZ(i, nx * r2, ny * r2, nz * r2);
+    // UVs equiretangulares: permitem que texturas (proceduralis ou reais) mapeiem na esfera
+    if (uv) {
+      uv.setXY(i,
+        0.5 + Math.atan2(nz, nx) / (2 * Math.PI),
+        0.5 - Math.asin(Math.max(-1, Math.min(1, ny))) / Math.PI);
+    }
+  }
+  pos.needsUpdate = true;
+  if (uv) uv.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// ---------------------------------------------------------------------------
+// Textura rochosa generica para corpos irregulares (Fobos, Deimos, asteroides).
+// Cinza craterizado, parametrizado por seed (para corpos diferentes nao ficarem iguais).
+export function createAsteroidTextures(size = 256, seed = 5) {
+  const height = createCraterHeight(size, 120, seed);
+  const hdata = height._ctx.getImageData(0, 0, size, size).data;
+  const canvas = newCanvas(size, size);
+  const img = canvas._ctx.createImageData(size, size);
+  const tint = makeNoise2D(seed * 3 + 1);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const idx = (y * size + x) * 4;
+      const h = hdata[idx] / 255;
+      let g = 70 + h * 120 + (fbm(tint, x / size * 10, y / size * 10, 3) - 0.5) * 22;
+      g = Math.max(0, Math.min(255, g));
+      img.data[idx] = g; img.data[idx + 1] = g * 0.97; img.data[idx + 2] = g * 0.9; img.data[idx + 3] = 255;
+    }
+  }
+  canvas._ctx.putImageData(img, 0, 0);
+  return { map: finalizeTexture(canvas, { srgb: true, repeat: true }), normalMap: createNormalMap(height, 2.0) };
+}
