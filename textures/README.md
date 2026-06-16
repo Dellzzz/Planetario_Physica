@@ -15,6 +15,8 @@ continua sendo usada (fallback).
 | Terra    | `terra.jpg`          | `terra_normal.jpg`          |
 | Lua      | `lua.jpg`            | `lua_normal.jpg`            |
 | Marte    | `marte.jpg`          | `marte_normal.jpg`          |
+| Fobos    | `fobos.jpg`          | `fobos_normal.jpg`          |
+| Deimos   | `deimos.jpg`         | `deimos_normal.jpg`         |
 
 > A Terra ainda aceita uma camada de nuvens separada: `terra_clouds.png` (com transparencia).
 

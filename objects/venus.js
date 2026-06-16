@@ -40,13 +40,13 @@ export function createVenus(scene, textures) {
 
   scene.add(group);
 
-  const orbit = createOrbitLine(SCALE.VENUS_ORBIT, 0x9c7a4a, 0.32);
+  const orbit = createOrbitLine(SCALE.VENUS_ORBIT, 0x9c7a4a, 0.32, 0.007, 1.3);
   scene.add(orbit);
 
   const body = new CelestialBody({
     id: 'venus', name: 'Venus', type: 'Planeta Rochoso', color: '#f0c067',
     group, mesh: surface, radius: SCALE.VENUS_RADIUS, orbitLine: orbit,
-    orbitRadius: SCALE.VENUS_ORBIT, orbitSpeed: 0.22,
+    orbitRadius: SCALE.VENUS_ORBIT, orbitSpeed: 0.22, eccentricity: 0.007, argPerihelion: 1.3,
     rotationSpeed: -0.04, // rotacao RETROGRADA (negativa)
     selectableMeshes: [surface, atmosphere], // tocar na atmosfera tambem seleciona
     info: [

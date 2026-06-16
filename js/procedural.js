@@ -427,6 +427,7 @@ export function createIrregularGeometry(radius = 1, detail = 2, seed = 1, amp = 
       w: (rand() * 2 - 1) * amp, s: 2 + rand() * 4,
     });
   }
+  const uv = geo.attributes.uv;
   const v = new THREE.Vector3();
   for (let i = 0; i < pos.count; i++) {
     v.fromBufferAttribute(pos, i);
@@ -440,8 +441,37 @@ export function createIrregularGeometry(radius = 1, detail = 2, seed = 1, amp = 
     disp = Math.max(-0.7, disp); // evita inversao da superficie
     const r2 = len * (1 + disp);
     pos.setXYZ(i, nx * r2, ny * r2, nz * r2);
+    // UVs equiretangulares: permitem que texturas (proceduralis ou reais) mapeiem na esfera
+    if (uv) {
+      uv.setXY(i,
+        0.5 + Math.atan2(nz, nx) / (2 * Math.PI),
+        0.5 - Math.asin(Math.max(-1, Math.min(1, ny))) / Math.PI);
+    }
   }
   pos.needsUpdate = true;
+  if (uv) uv.needsUpdate = true;
   geo.computeVertexNormals();
   return geo;
+}
+
+// ---------------------------------------------------------------------------
+// Textura rochosa generica para corpos irregulares (Fobos, Deimos, asteroides).
+// Cinza craterizado, parametrizado por seed (para corpos diferentes nao ficarem iguais).
+export function createAsteroidTextures(size = 256, seed = 5) {
+  const height = createCraterHeight(size, 120, seed);
+  const hdata = height._ctx.getImageData(0, 0, size, size).data;
+  const canvas = newCanvas(size, size);
+  const img = canvas._ctx.createImageData(size, size);
+  const tint = makeNoise2D(seed * 3 + 1);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const idx = (y * size + x) * 4;
+      const h = hdata[idx] / 255;
+      let g = 70 + h * 120 + (fbm(tint, x / size * 10, y / size * 10, 3) - 0.5) * 22;
+      g = Math.max(0, Math.min(255, g));
+      img.data[idx] = g; img.data[idx + 1] = g * 0.97; img.data[idx + 2] = g * 0.9; img.data[idx + 3] = 255;
+    }
+  }
+  canvas._ctx.putImageData(img, 0, 0);
+  return { map: finalizeTexture(canvas, { srgb: true, repeat: true }), normalMap: createNormalMap(height, 2.0) };
 }

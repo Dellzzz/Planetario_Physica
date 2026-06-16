@@ -13,9 +13,12 @@ import { createIrregularGeometry } from '../js/procedural.js';
 // Cria uma lua de formato irregular anexada a um corpo (planeta).
 function createIrregularMoon(parent, cfg) {
   const group = new THREE.Group();
-  const geo = createIrregularGeometry(cfg.radius, 2, cfg.seed, cfg.amp);
-  // flatShading = true da o aspecto rochoso/facetado de asteroide
-  const mat = new THREE.MeshStandardMaterial({ color: cfg.color, roughness: 1.0, metalness: 0.0, flatShading: true });
+  const geo = createIrregularGeometry(cfg.radius, 3, cfg.seed, cfg.amp);
+  // textura rochosa procedural + relevo (normal map); superficie suave para a textura aparecer bem
+  const mat = new THREE.MeshStandardMaterial({
+    map: cfg.textures.map, normalMap: cfg.textures.normalMap,
+    normalScale: new THREE.Vector2(0.9, 0.9), roughness: 1.0, metalness: 0.0,
+  });
   const mesh = new THREE.Mesh(geo, mat);
   if (cfg.stretch) mesh.scale.set(cfg.stretch[0], cfg.stretch[1], cfg.stretch[2]); // alonga (formato de batata)
   group.add(mesh);
@@ -25,12 +28,18 @@ function createIrregularMoon(parent, cfg) {
   parent.group.add(orbit);
 
   const maxStretch = cfg.stretch ? Math.max(cfg.stretch[0], cfg.stretch[1], cfg.stretch[2]) : 1;
-  return new CelestialBody({
+  const body = new CelestialBody({
     id: cfg.id, name: cfg.name, type: 'Satelite Natural (irregular)', color: cfg.color,
     group, mesh, radius: cfg.radius * maxStretch, orbitLine: orbit,
     orbitRadius: cfg.orbitRadius, orbitSpeed: cfg.orbitSpeed, rotationSpeed: cfg.rotationSpeed,
     info: cfg.info, fact: cfg.fact,
   });
+  // suporte a textura real por convencao: ex. textures/fobos.jpg + textures/fobos_normal.jpg
+  body.realTextures = [
+    { file: cfg.id, material: mat, slot: 'map', srgb: true },
+    { file: cfg.id + '_normal', material: mat, slot: 'normalMap', srgb: false },
+  ];
+  return body;
 }
 
 export function createMars(scene, textures) {
@@ -47,13 +56,14 @@ export function createMars(scene, textures) {
   tilt.add(surface);
   scene.add(group);
 
-  const orbit = createOrbitLine(SCALE.MARS_ORBIT, 0xb05a3c, 0.30);
+  const orbit = createOrbitLine(SCALE.MARS_ORBIT, 0xb05a3c, 0.30, 0.093, 3.4);
   scene.add(orbit);
 
   const mars = new CelestialBody({
     id: 'marte', name: 'Marte', type: 'Planeta Rochoso', color: '#e2703a',
     group, mesh: surface, radius: SCALE.MARS_RADIUS, orbitLine: orbit,
     orbitRadius: SCALE.MARS_ORBIT, orbitSpeed: 0.13, rotationSpeed: 0.29,
+    eccentricity: 0.093, argPerihelion: 3.4,
     info: [
       ['Diametro', '6.779 km'],
       ['Ano (translacao)', '687 dias'],
@@ -70,6 +80,7 @@ export function createMars(scene, textures) {
   ];
 
   const phobos = createIrregularMoon(mars, {
+    textures: textures.phobos,
     id: 'fobos', name: 'Fobos', color: '#9c9087', seed: 4, amp: 0.34, stretch: [1.35, 0.92, 0.78],
     radius: SCALE.PHOBOS_RADIUS, orbitRadius: SCALE.PHOBOS_ORBIT, orbitSpeed: 1.6, rotationSpeed: 1.6,
     info: [
@@ -82,6 +93,7 @@ export function createMars(scene, textures) {
   });
 
   const deimos = createIrregularMoon(mars, {
+    textures: textures.deimos,
     id: 'deimos', name: 'Deimos', color: '#a89c8c', seed: 13, amp: 0.30, stretch: [1.22, 0.95, 0.85],
     radius: SCALE.DEIMOS_RADIUS, orbitRadius: SCALE.DEIMOS_ORBIT, orbitSpeed: 0.9, rotationSpeed: 0.9,
     info: [

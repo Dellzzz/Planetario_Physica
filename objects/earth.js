@@ -44,13 +44,14 @@ export function createEarth(scene, textures) {
 
   scene.add(group);
 
-  const orbit = createOrbitLine(SCALE.EARTH_ORBIT, 0x4a7fc4, 0.32);
+  const orbit = createOrbitLine(SCALE.EARTH_ORBIT, 0x4a7fc4, 0.32, 0.017, 2.0);
   scene.add(orbit);
 
   const body = new CelestialBody({
     id: 'terra', name: 'Terra', type: 'Planeta Rochoso', color: '#5fa8ff',
     group, mesh: surface, radius: SCALE.EARTH_RADIUS, orbitLine: orbit,
     orbitRadius: SCALE.EARTH_ORBIT, orbitSpeed: 0.17, rotationSpeed: 0.30,
+    eccentricity: 0.017, argPerihelion: 2.0,
     info: [
       ['Diametro', '12.742 km'],
       ['Ano (translacao)', '365,25 dias'],
