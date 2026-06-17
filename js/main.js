@@ -23,6 +23,7 @@ import { createMars } from '../objects/mars.js';
 import { createJupiter } from '../objects/jupiter.js';
 import { createSaturn } from '../objects/saturn.js';
 import { createUranus } from '../objects/uranus.js';
+import { createNeptune } from '../objects/neptune.js';
 import { createDecorations } from '../objects/decorations.js';
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
@@ -113,7 +114,8 @@ function init() {
   const jupiterSystem = createJupiter(scene); // [Jupiter, Io, Europa, Ganimedes, Calisto]
   const saturnSystem = createSaturn(scene); // [Saturno, Dione, Reia, Tita, Japeto]
   const uranusSystem = createUranus(scene); // [Urano, Miranda, Ariel, Umbriel, Titania, Oberon]
-  bodies = [sun, mercury, venus, earth, moon, ...marsSystem, ...jupiterSystem, ...saturnSystem, ...uranusSystem];
+  const neptuneSystem = createNeptune(scene); // [Netuno, Proteu, Tritao, Nereida]
+  bodies = [sun, mercury, venus, earth, moon, ...marsSystem, ...jupiterSystem, ...saturnSystem, ...uranusSystem, ...neptuneSystem];
   decorations = createDecorations(scene); // cinturao de asteroides, meteoroides e cometas (so enfeite)
 
   // tenta substituir as texturas procedurais por arquivos reais em textures/
