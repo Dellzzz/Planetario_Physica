@@ -31,6 +31,31 @@
     <div class="loader-text">Gerando o cosmos...</div>
   </div>
 
+  <script>
+    // Rede de seguranca: se o app nao iniciar (ex.: algum arquivo .js nao foi
+    // enviado ao servidor), mostra um aviso em vez de ficar em "loading" infinito.
+    function showLoaderError(msg) {
+      var l = document.getElementById('loader');
+      if (!l) return;
+      l.classList.remove('hidden');
+      l.innerHTML = '<div style="max-width:360px;text-align:center;font-family:Poppins,sans-serif;color:#ffd6d6;padding:0 22px;line-height:1.55">'
+        + '<div style="font-size:36px;margin-bottom:10px">&#9888;</div>' + msg
+        + '<div style="opacity:.65;font-size:12px;margin-top:14px">Abra o Console (tecla F12) para ver o erro exato.</div></div>';
+    }
+    window.__showLoaderError = showLoaderError;
+    // erro ao carregar um modulo/recurso (ex.: 404 de um arquivo .js)
+    window.addEventListener('error', function (e) {
+      if (e && e.target && e.target.tagName === 'SCRIPT') {
+        showLoaderError('Falha ao carregar um modulo JavaScript (arquivo ausente ou caminho errado). Verifique se TODOS os arquivos foram enviados ao servidor.');
+      }
+    }, true);
+    // ultimo recurso: nao iniciou em 10s
+    setTimeout(function () {
+      if (!window.__planetarioReady) {
+        showLoaderError('Nao foi possivel iniciar. Confira se TODOS os arquivos das pastas <b>js/</b> e <b>objects/</b> foram enviados (inclusive os mais novos, como <b>objects/diagram.js</b>).');
+      }
+    }, 10000);
+  </script>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
