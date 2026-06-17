@@ -31,6 +31,9 @@ export class CameraFocus {
     this._endPos = new THREE.Vector3();
     this._tmpPos = new THREE.Vector3();
     this._tmpTarget = new THREE.Vector3();
+    this.staticFly = false; // voo ate uma posicao FIXA (modo diagrama)
+    this._sTarget = new THREE.Vector3();
+    this._sPos = new THREE.Vector3();
     this.home = { pos: new THREE.Vector3(0, 22, 64), target: new THREE.Vector3(0, 0, 0) };
   }
 
@@ -40,6 +43,7 @@ export class CameraFocus {
   follow(body) {
     this.body = body;
     this.resetting = false;
+    this.staticFly = false;
     const r = body.radius || 1;
     this.desiredDist = r * 4 + 2; // enquadramento confortavel
     // inicia a VIAGEM suave ate o corpo (sem teleporte instantaneo)
@@ -57,6 +61,7 @@ export class CameraFocus {
   reset() {
     this.body = null;
     this.flying = false;
+    this.staticFly = false;
     this.resetting = true;
     this.flyT = 0;
     this._startPos.copy(this.camera.position);
@@ -64,7 +69,28 @@ export class CameraFocus {
     this.flyDur = this._travelDur(this._startPos, this.home.pos);
   }
 
+  // Viaja suavemente ate uma posicao/alvo FIXOS e para la (usado no modo diagrama).
+  flyToStatic(targetVec, posVec) {
+    this.body = null;
+    this.resetting = false;
+    this.staticFly = true;
+    this.flyT = 0;
+    this._startPos.copy(this.camera.position);
+    this._startTarget.copy(this.controls.target);
+    this._sTarget.copy(targetVec);
+    this._sPos.copy(posVec);
+    this.flyDur = this._travelDur(this._startPos, posVec);
+  }
+
   update(delta) {
+    if (this.staticFly) {
+      this.flyT += delta / this.flyDur;
+      const k = easeInOut(Math.min(1, this.flyT));
+      this.controls.target.copy(this._startTarget).lerp(this._sTarget, k);
+      this.camera.position.copy(this._startPos).lerp(this._sPos, k);
+      if (this.flyT >= 1) this.staticFly = false;
+      return;
+    }
     if (this.body) {
       const bp = this.body.getWorldPosition(this._p);
       if (this.flying) {
