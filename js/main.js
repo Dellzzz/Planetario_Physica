@@ -103,6 +103,7 @@ function resetView() {
 }
 
 function init() {
+  window.__planetarioReady = true; // sinaliza que o modulo carregou e o init comecou
   const canvas = document.getElementById('scene');
   const created = createScene(canvas);
   scene = created.scene; renderer = created.renderer;
@@ -247,4 +248,9 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-init();
+try {
+  init();
+} catch (e) {
+  console.error('Erro ao iniciar o Planetario:', e);
+  if (window.__showLoaderError) window.__showLoaderError('Erro ao iniciar: ' + (e && e.message ? e.message : e));
+}
