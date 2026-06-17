@@ -7,6 +7,48 @@ import * as THREE from 'three';
 import { SETTINGS, COLORS } from './config.js';
 import { createStarTexture, createNebulaTexture } from './procedural.js';
 
+// Textura do nucleo galactico (centro da Via-Lactea): bojo brilhante alongado,
+// nuvens de estrelas concentradas e faixas de poeira escuras (rifts) atravessando.
+function makeGalaxyCoreTexture(size) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = size;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, size, size);
+  const cx = size / 2, cy = size / 2;
+  // bojo central brilhante, achatado (disco visto quase de perfil)
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 3; i++) {
+    const rad = size * (0.5 - i * 0.12);
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+    g.addColorStop(0, 'rgba(255,238,205,' + (0.5 - i * 0.1).toFixed(2) + ')');
+    g.addColorStop(0.4, 'rgba(240,200,150,' + (0.22 - i * 0.05).toFixed(2) + ')');
+    g.addColorStop(1, 'rgba(120,90,70,0)');
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(1, 0.42); ctx.translate(-cx, -cy);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  }
+  // nuvens de estrelas: pontinhos quentes concentrados no centro (gaussiana achatada)
+  for (let i = 0; i < 2200; i++) {
+    const gx = (Math.random() + Math.random() + Math.random() - 1.5);
+    const gy = (Math.random() + Math.random() + Math.random() - 1.5);
+    const x = cx + gx * size * 0.32, y = cy + gy * size * 0.14;
+    const b = (0.3 + Math.random() * 0.7).toFixed(2), warm = Math.random();
+    ctx.fillStyle = 'rgba(255,' + (236 - warm * 40 | 0) + ',' + (205 - warm * 70 | 0) + ',' + b + ')';
+    const s = Math.random() < 0.92 ? 0.8 : 1.7;
+    ctx.fillRect(x, y, s, s);
+  }
+  // faixas de poeira: apaga partes (em blending aditivo, regiao apagada fica escura)
+  ctx.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < 2; i++) {
+    const yy = cy + (i === 0 ? -size * 0.02 : size * 0.05);
+    ctx.save(); ctx.translate(cx, yy); ctx.scale(1, 0.16); ctx.translate(-cx, -yy);
+    const g = ctx.createRadialGradient(cx, yy, 0, cx, yy, size * 0.5);
+    g.addColorStop(0, 'rgba(0,0,0,0.85)'); g.addColorStop(0.7, 'rgba(0,0,0,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, yy, size * 0.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true;
+  return tex;
+}
+
 // Cria a cena e o renderizador WebGL (tone mapping cinematografico, sRGB).
 export function createScene(canvas) {
   const scene = new THREE.Scene();
@@ -73,10 +115,18 @@ export function createBackground(scene) {
     nebulaGroup.add(sp);
   }
 
+  // Centro da Via-Lactea, bem ao fundo (acompanha a paralaxe lenta do ceu distante)
+  const galaxy = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeGalaxyCoreTexture(512), transparent: true, opacity: 0.65,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  }));
+  galaxy.position.set(950, -120, -1250);
+  galaxy.scale.set(1300, 1300, 1);
+
   const near = new THREE.Group();
   near.add(nearStars); near.add(nebulaGroup);
   const far = new THREE.Group();
-  far.add(farStars);
+  far.add(farStars); far.add(galaxy);
 
   scene.add(near); scene.add(far);
   return { near, far };
