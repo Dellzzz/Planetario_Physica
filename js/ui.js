@@ -1,15 +1,17 @@
 // =============================================================================
 // ui.js
-// Interface educacional (HUD). Gera todo o DOM dentro de um elemento raiz.
-// O painel funciona como um MENU SUSPENSO: o cabecalho mostra o nome do astro
-// e uma SETA que expande/recolhe os detalhes. Nao ha "X": para sair do astro,
-// usa-se o botao "resetar" da barra superior.
+// Interface educacional (HUD). A barra de selecao mostra apenas Sol + planetas;
+// ao escolher um planeta, a camera VIAJA ate ele e abre um SUBMENU com as suas
+// luas. Escolher uma lua faz a camera viajar ate ela.
+// O painel funciona como menu suspenso (cabecalho com seta expande/recolhe).
 // =============================================================================
 
-export function createUI({ root, bodies, onFocus, onReset, onTogglePause, onToggleOrbits }) {
-  // botoes de selecao rapida, gerados a partir da lista de corpos
-  const quick = bodies.map((b) =>
-    '<button class="qbtn" data-id="' + b.id + '" style="--accent:' + b.color + '">' + b.name + '</button>'
+export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause, onToggleOrbits }) {
+  // barra superior de selecao: apenas Sol + planetas (planetas com luas ganham uma seta)
+  const quick = groups.map((g) =>
+    '<button class="qbtn" data-id="' + g.planet.id + '" style="--accent:' + g.planet.color + '">' +
+    g.planet.name + (g.moons.length ? ' <span class="qbtn-caret" aria-hidden="true">&#9662;</span>' : '') +
+    '</button>'
   ).join('');
 
   root.innerHTML = [
@@ -26,6 +28,7 @@ export function createUI({ root, bodies, onFocus, onReset, onTogglePause, onTogg
     '  </div>',
     '</div>',
     '<div class="quickbar">' + quick + '</div>',
+    '<div class="submenu" id="submenu" aria-label="Luas do planeta selecionado"></div>',
     '<aside class="panel collapsed" id="panel">',
     '  <div class="panel-head" id="panel-head" role="button" tabindex="0" aria-expanded="false" aria-label="Expandir ou recolher informacoes do astro">',
     '    <div class="panel-titles">',
@@ -42,14 +45,18 @@ export function createUI({ root, bodies, onFocus, onReset, onTogglePause, onTogg
     '    </div>',
     '  </div>',
     '</aside>',
-    '<div class="hint" id="hint">Toque em um astro para explorar &nbsp;&bull;&nbsp; arraste para girar &nbsp;&bull;&nbsp; pince para aproximar</div>',
+    '<div class="hint" id="hint">Toque em um planeta para viajar ate ele &nbsp;&bull;&nbsp; arraste para girar &nbsp;&bull;&nbsp; pince para aproximar</div>',
   ].join('');
 
   const $ = (s) => root.querySelector(s);
   const panel = $('#panel');
   const head = $('#panel-head');
+  const submenu = $('#submenu');
   const byId = Object.fromEntries(bodies.map((b) => [b.id, b]));
-  let paused = false, orbitsVisible = true, hintShown = true;
+  const groupByPlanetId = Object.fromEntries(groups.map((g) => [g.planet.id, g]));
+  const parentOfMoon = {};
+  for (const g of groups) for (const mn of g.moons) parentOfMoon[mn.id] = g;
+  let paused = false, orbitsVisible = true, hintShown = true, expandedPlanet = null;
 
   const isMobile = () => window.innerWidth <= 760;
 
@@ -63,6 +70,24 @@ export function createUI({ root, bodies, onFocus, onReset, onTogglePause, onTogg
   }
   function toggleCollapsed() { setCollapsed(!panel.classList.contains('collapsed')); }
 
+  // ---- submenu de luas ----
+  function openSubmenu(g) {
+    submenu.innerHTML = '<span class="submenu-label">Luas de ' + g.planet.name + '</span>' +
+      g.moons.map((mn) =>
+        '<button class="qbtn moon" data-id="' + mn.id + '" style="--accent:' + mn.color + '">' + mn.name + '</button>'
+      ).join('');
+    submenu.querySelectorAll('.qbtn.moon').forEach((b) =>
+      b.addEventListener('click', () => onFocus(byId[b.dataset.id])));
+    submenu.classList.add('open');
+    expandedPlanet = g.planet.id;
+  }
+  function closeSubmenu() {
+    submenu.classList.remove('open');
+    submenu.innerHTML = '';
+    expandedPlanet = null;
+  }
+  function ensureSubmenu(g) { if (expandedPlanet !== g.planet.id) openSubmenu(g); }
+
   function showInfo(body) {
     panel.style.setProperty('--accent', body.color);
     $('#p-name').textContent = body.name;
@@ -74,6 +99,10 @@ export function createUI({ root, bodies, onFocus, onReset, onTogglePause, onTogg
     panel.classList.add('open');
     // no celular abre RECOLHIDO (so o nome) para o astro ficar visivel; no desktop, expandido
     setCollapsed(isMobile());
+    // submenu primeiro (para os botoes ja existirem), depois marca o botao ativo
+    const g = groupByPlanetId[body.id];
+    if (g) { if (g.moons.length) ensureSubmenu(g); else closeSubmenu(); }
+    else { const pg = parentOfMoon[body.id]; if (pg) ensureSubmenu(pg); }
     setActiveButton(body.id);
     hideHint();
   }
@@ -82,19 +111,18 @@ export function createUI({ root, bodies, onFocus, onReset, onTogglePause, onTogg
     panel.classList.remove('open');
     setCollapsed(true);
     setActiveButton(null);
+    closeSubmenu();
   }
 
   // ---- eventos ----
-  root.querySelectorAll('.qbtn').forEach((btn) =>
+  root.querySelectorAll('.quickbar .qbtn').forEach((btn) =>
     btn.addEventListener('click', () => onFocus(byId[btn.dataset.id])));
 
-  // cabecalho do painel = abre/recolhe o menu suspenso
   head.addEventListener('click', toggleCollapsed);
   head.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapsed(); }
   });
 
-  // "voltar": resetar a visao e fechar o painel
   $('#btn-reset').addEventListener('click', () => { hide(); onReset(); });
 
   $('#btn-pause').addEventListener('click', () => {
