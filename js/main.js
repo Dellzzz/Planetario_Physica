@@ -25,11 +25,13 @@ import { createSaturn } from '../objects/saturn.js';
 import { createUranus } from '../objects/uranus.js';
 import { createNeptune } from '../objects/neptune.js';
 import { createDecorations } from '../objects/decorations.js';
+import { createDiagram } from '../objects/diagram.js';
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
 
 let scene, renderer, camera, controls, cameraFocus, ui;
-let bodies = [], sun = null, sunLight = null, bg = null, indicator = null, decorations = null;
+let bodies = [], sun = null, sunLight = null, bg = null, indicator = null, decorations = null, diagram = null;
+const moonParent = {}; // id da lua -> corpo do planeta-mae (para o modo diagrama)
 const clock = new THREE.Clock();
 
 // Gera todas as texturas procedurais (etapa "pesada" do carregamento).
@@ -81,12 +83,21 @@ function tryLoadTexture(loader, base, exts, i, slot) {
 }
 
 function onSelect(body) {
+  if (diagram && diagram.active()) {
+    // no diagrama so existem planetas visiveis; uma lua (oculta) vira o planeta-mae
+    const target = moonParent[body.id] || body;
+    ui.showInfo(target);       // mostra o painel imediatamente
+    ui.setDiagramActive(false);
+    diagram.exit(target);      // astros voltam as orbitas; ao terminar, a camera foca o alvo
+    return;
+  }
   cameraFocus.follow(body);
   indicator.select(body);
   ui.showInfo(body);
 }
 
 function resetView() {
+  if (diagram && diagram.active()) { diagram.exit(null); ui.setDiagramActive(false); return; }
   cameraFocus.reset();
   indicator.clear();
 }
@@ -131,6 +142,30 @@ function init() {
     { planet: neptuneSystem[0], moons: neptuneSystem.slice(1) },
   ];
 
+  // ---- modo diagrama (alinha Sol + planetas; volta as orbitas ao selecionar) ----
+  for (const g of groups) for (const mn of g.moons) moonParent[mn.id] = g.planet;
+  function setAuxVisible(v) {
+    for (const g of groups) {
+      for (const mn of g.moons) {
+        if (mn.group) mn.group.visible = v;                          // esconde/mostra as luas
+        if (mn.orbitLine) mn.orbitLine.visible = v && state.orbitsVisible;
+      }
+      if (g.planet.orbitLine) g.planet.orbitLine.visible = v && state.orbitsVisible; // orbitas heliocentricas
+    }
+    if (sun.glow) sun.glow.visible = v;   // o brilho enorme do Sol ofuscaria a fileira
+    if (sun.halo) sun.halo.visible = v;
+    if (decorations && decorations.setVisible) decorations.setVisible(v); // cinturao/cometas
+  }
+  diagram = createDiagram({
+    planets: groups.map((g) => g.planet),
+    getCamera: () => camera,
+    cameraFocus,
+    sunLight,
+    setAuxVisible,
+    onFocusBody: (b) => { cameraFocus.follow(b); indicator.select(b); }, // ao terminar a volta, foca o astro
+    onReset: () => { cameraFocus.reset(); indicator.clear(); },
+  });
+
   // tenta substituir as texturas procedurais por arquivos reais em textures/
   applyRealTextures(bodies);
 
@@ -144,6 +179,16 @@ function init() {
     onToggleOrbits: (v) => {
       state.orbitsVisible = v;
       for (const b of bodies) if (b.orbitLine) b.orbitLine.visible = v;
+    },
+    onToggleDiagram: () => {
+      if (diagram.active()) {
+        diagram.exit(null); // volta as orbitas e reseta a visao
+        ui.setDiagramActive(false);
+      } else {
+        ui.hide(); indicator.clear();   // limpa painel/submenu/selecao
+        ui.setDiagramActive(true);
+        diagram.enter();
+      }
     },
   });
 
@@ -177,11 +222,16 @@ function animate() {
   if (state.hidden) return; // economiza bateria quando a aba nao esta visivel
 
   if (!state.paused) {
-    for (const b of bodies) {
-      b.update(delta);
-      if (b.atmosphere) b.atmosphere.rotation.y += (b.atmosphereSpeed || 0) * delta;
+    if (diagram && diagram.active()) {
+      diagram.update(delta); // no modo diagrama, este controlador posiciona os astros (orbitas congeladas)
+    } else {
+      for (const b of bodies) {
+        b.update(delta);
+        if (b.atmosphere) b.atmosphere.rotation.y += (b.atmosphereSpeed || 0) * delta;
+      }
+      if (decorations) decorations.update(delta);
     }
-    // pulsacao do Sol (intensidade luminosa variavel + brilho)
+    // pulsacao do Sol (intensidade luminosa variavel + brilho) -- sempre ativa
     sunLight.intensity = 2.6 + Math.sin(elapsed * 0.8) * 0.35;
     if (sun.glow) {
       const s = SCALE.SUN_RADIUS * 5 * (1 + Math.sin(elapsed * 1.1) * 0.04);
@@ -189,7 +239,6 @@ function animate() {
     }
     // movimento lento do fundo (paralaxe)
     if (bg) { bg.near.rotation.y += delta * 0.006; bg.far.rotation.y += delta * 0.0035; }
-    if (decorations) decorations.update(delta);
   }
 
   cameraFocus.update(delta);
