@@ -118,12 +118,26 @@ function init() {
   bodies = [sun, mercury, venus, earth, moon, ...marsSystem, ...jupiterSystem, ...saturnSystem, ...uranusSystem, ...neptuneSystem];
   decorations = createDecorations(scene); // cinturao de asteroides, meteoroides e cometas (so enfeite)
 
+  // hierarquia para os menus: Sol + planetas no topo, cada um com suas luas no submenu
+  const groups = [
+    { planet: sun, moons: [] },
+    { planet: mercury, moons: [] },
+    { planet: venus, moons: [] },
+    { planet: earth, moons: [moon] },
+    { planet: marsSystem[0], moons: marsSystem.slice(1) },
+    { planet: jupiterSystem[0], moons: jupiterSystem.slice(1) },
+    { planet: saturnSystem[0], moons: saturnSystem.slice(1) },
+    { planet: uranusSystem[0], moons: uranusSystem.slice(1) },
+    { planet: neptuneSystem[0], moons: neptuneSystem.slice(1) },
+  ];
+
   // tenta substituir as texturas procedurais por arquivos reais em textures/
   applyRealTextures(bodies);
 
   ui = createUI({
     root: document.getElementById('hud-root'),
     bodies,
+    groups,
     onFocus: onSelect,
     onReset: resetView,
     onTogglePause: (p) => { state.paused = p; },
