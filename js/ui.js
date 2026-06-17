@@ -6,7 +6,7 @@
 // O painel funciona como menu suspenso (cabecalho com seta expande/recolhe).
 // =============================================================================
 
-export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause, onToggleOrbits }) {
+export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause, onToggleOrbits, onToggleDiagram }) {
   // barra superior de selecao: apenas Sol + planetas (planetas com luas ganham uma seta)
   const quick = groups.map((g) =>
     '<button class="qbtn" data-id="' + g.planet.id + '" style="--accent:' + g.planet.color + '">' +
@@ -22,6 +22,7 @@ export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause
     '    <span class="brand-sub">Sistema Solar</span>',
     '  </div>',
     '  <div class="controls">',
+    '    <button class="ctrl-btn" id="btn-diagram" title="Modo diagrama: alinhar os astros" aria-label="Modo diagrama">&#9638;</button>',
     '    <button class="ctrl-btn" id="btn-orbits" title="Mostrar/ocultar orbitas" aria-label="Orbitas">&#9678;</button>',
     '    <button class="ctrl-btn" id="btn-pause" title="Pausar/continuar" aria-label="Pausar">&#10073;&#10073;</button>',
     '    <button class="ctrl-btn" id="btn-reset" title="Voltar (resetar visao)" aria-label="Resetar">&#8635;</button>',
@@ -136,6 +137,9 @@ export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause
     $('#btn-orbits').classList.toggle('active', !orbitsVisible);
     onToggleOrbits(orbitsVisible);
   });
+  $('#btn-diagram').addEventListener('click', () => onToggleDiagram());
 
-  return { showInfo, hide, hideHint };
+  function setDiagramActive(v) { $('#btn-diagram').classList.toggle('active', v); }
+
+  return { showInfo, hide, hideHint, setDiagramActive };
 }
