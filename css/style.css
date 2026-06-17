@@ -210,3 +210,32 @@ html, body {
   .panel, .hint, #loader { transition: none; }
   .loader-ring { animation: none; }
 }
+
+/* ---------- Submenu de luas (aparece abaixo da barra ao escolher um planeta) ---------- */
+.submenu {
+  position: absolute; left: 50%; transform: translateX(-50%); top: 112px;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center;
+  max-width: 92vw; pointer-events: auto;
+  max-height: 0; overflow: hidden; opacity: 0;
+  transition: opacity .25s ease, max-height .3s ease;
+}
+.submenu.open { max-height: 220px; opacity: 1; }
+.submenu-label {
+  font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 600;
+  color: rgba(206,214,235,0.7); letter-spacing: .3px; margin-right: 2px; white-space: nowrap;
+}
+.qbtn.moon { padding: 6px 13px; min-height: 34px; font-size: 13px; font-weight: 500; }
+.qbtn-caret { font-size: 10px; opacity: 0.7; margin-left: 3px; }
+
+@media (max-width: 760px) {
+  .submenu {
+    top: 116px; left: 0; right: 0; transform: none;
+    max-width: none; justify-content: flex-start; flex-wrap: nowrap;
+    overflow-x: auto; gap: 8px; padding: 2px 14px 6px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .submenu.open { max-height: 64px; }
+  .submenu::-webkit-scrollbar { display: none; }
+  .submenu .qbtn { flex: 0 0 auto; }
+  .submenu-label { position: sticky; left: 0; }
+}
