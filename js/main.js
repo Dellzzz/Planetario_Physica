@@ -21,6 +21,7 @@ import { createEarth } from '../objects/earth.js';
 import { createMoon } from '../objects/moon.js';
 import { createMars } from '../objects/mars.js';
 import { createJupiter } from '../objects/jupiter.js';
+import { createSaturn } from '../objects/saturn.js';
 import { createDecorations } from '../objects/decorations.js';
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
@@ -109,7 +110,8 @@ function init() {
   const moon = createMoon(textures, earth); // a Lua orbita a Terra
   const marsSystem = createMars(scene, textures); // [Marte, Fobos, Deimos] (luas orbitam Marte)
   const jupiterSystem = createJupiter(scene); // [Jupiter, Io, Europa, Ganimedes, Calisto]
-  bodies = [sun, mercury, venus, earth, moon, ...marsSystem, ...jupiterSystem];
+  const saturnSystem = createSaturn(scene); // [Saturno, Dione, Reia, Tita, Japeto]
+  bodies = [sun, mercury, venus, earth, moon, ...marsSystem, ...jupiterSystem, ...saturnSystem];
   decorations = createDecorations(scene); // cinturao de asteroides, meteoroides e cometas (so enfeite)
 
   // tenta substituir as texturas procedurais por arquivos reais em textures/
