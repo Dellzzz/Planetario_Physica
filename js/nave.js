@@ -322,15 +322,18 @@ export function createNaveMode(ctx){
     steerLerp: 3.4,       // suavidade com que a velocidade segue o nariz
     skin: 0.04 * Mk,
     gravMinFactor: 0.18,
-    camDist: 0.040 * Mk,  // distancia da camera atras da nave (mais perto)
-    camWarpMult: 1.2,     // o quanto a camera afasta na hipervelocidade
+    camDist: 0.040 * Mk,  // distancia base da camera atras da nave (parada)
+    camWarpMult: 0.5,     // hyper: bem mais perto (limitado por camMinDist)
+    camMinDist: 0.024 * Mk, // distancia minima (nunca corta a nave)
     camHeight: 0.012 * Mk,// elevacao da camera acima da nave
     camLook: 0.012 * Mk,  // ponto de mira a frente da nave
-    camLerp: 9,           // mais alto = camera acompanha mais rapido ao acelerar
+    camLerp: 9,           // suavizacao da camera em ORBITA
+    camTurn: 5,           // suavizacao da direcao/distancia no voo livre
     fov: 60, fovWarp: 90,
     altRate: 1.2 * W * S,
     omegaRate: 0.9,
-    omegaMax: 1.6
+    omegaMax: 1.6,
+    orbMaxSpeed: 2.0      // velocidade orbital maxima (u/s)
   };
 
   // ---- estado ----
@@ -344,6 +347,8 @@ export function createNaveMode(ctx){
   const velDir = new THREE.Vector3(0, 0, 1);
   const fwd = new THREE.Vector3(0, 0, 1);
   const shipUp = new THREE.Vector3(0, 1, 0);
+  const camFwd = new THREE.Vector3(0, 0, 1);   // direcao da camera (suavizada) no voo livre
+  let camDistCur = 0;                           // distancia atual da camera (suavizada)
 
   let target = null;
   let domBody = null;
@@ -554,6 +559,8 @@ export function createNaveMode(ctx){
     const tang = _v2.copy(velDir).multiplyScalar(speed).dot(orbT0);
     orbOmega = clamp(tang / Math.max(0.1 * W, orbRadius), -1.2, 1.2);
     if (Math.abs(orbOmega) < 0.18) orbOmega = 0.45;
+    const maxOmega0 = P.orbMaxSpeed / Math.max(orbRadius, 1e-4);
+    orbOmega = clamp(orbOmega, -maxOmega0, maxOmega0);   // entra ja respeitando o limite de 2 u/s
     mode = 'orbit'; warp = false;
     dom.btnWarp.classList.remove('on'); warpFx(false);
     updateButtons();
@@ -565,6 +572,8 @@ export function createNaveMode(ctx){
     // retoma o voo livre alinhado com a tangente atual
     yaw = Math.atan2(velDir.x, velDir.z);
     pitch = clamp(Math.asin(clamp(velDir.y, -1, 1)), -P.pitchMax, P.pitchMax);
+    buildOrientation(0);
+    camFwd.copy(fwd);          // evita giro brusco da camera ao sair da orbita
     updateButtons();
   }
 
@@ -573,6 +582,8 @@ export function createNaveMode(ctx){
     // lado esquerdo: Y = altitude, X = velocidade/sentido orbital
     orbRadius = clamp(orbRadius + steer.y * P.altRate * dt, orbBody.radius * 1.8, orbBody.influence * 0.95);
     orbOmega = clamp(orbOmega + steer.x * P.omegaRate * dt, -P.omegaMax, P.omegaMax);
+    const maxOmega = P.orbMaxSpeed / Math.max(orbRadius, 1e-4);   // limita a velocidade orbital a 2 u/s
+    orbOmega = clamp(orbOmega, -maxOmega, maxOmega);
     orbAngle += orbOmega * dt;
 
     const c = Math.cos(orbAngle), s = Math.sin(orbAngle);
@@ -628,29 +639,47 @@ export function createNaveMode(ctx){
 
   function updateCamera(dt){
     if (mode === 'orbit' && orbBody){
-      // Em orbita: enquadra a NAVE com o planeta ao fundo, acompanhando a volta.
+      // Em orbita: camera SEMPRE virada para o planeta, com a nave em primeiro
+      // plano e o planeta ao fundo. (velocidade baixa -> lerp suave, sem lag.)
       const C = orbBody.wp;
       _v1.copy(pos).sub(C);               // planeta -> nave (radial, "para fora")
       let r = _v1.length();
       if (r < 1e-6){ _v1.copy(fwd); r = 1; }
       _v1.divideScalar(r);
-      const dist = P.camDist * 1.25;      // um pouco atras: nave em primeiro plano, planeta ao fundo
-      _v3.copy(pos).addScaledVector(_v1, dist).addScaledVector(orbN, P.camHeight * 1.1);
+      _v2.crossVectors(orbN, _v1);        // tangente (direcao do movimento)
+      if (_v2.lengthSq() < 1e-9) _v2.copy(fwd);
+      _v2.normalize();
+      const dist = P.camDist * 1.15;
+      _v3.copy(pos)
+         .addScaledVector(_v1, dist)            // atras da nave (para fora)
+         .addScaledVector(orbN, P.camHeight * 1.2) // um pouco acima do plano
+         .addScaledVector(_v2, -dist * 0.35);   // leve lateral: nave de lado, planeta atras
       camera.position.lerp(_v3, clamp(P.camLerp * dt, 0, 1));
-      camera.lookAt(pos);                  // mira na NAVE; o planeta fica atras dela
+      camera.lookAt(C);                    // travada no planeta
       if (Math.abs(camera.fov - P.fov) > 0.1){
         camera.fov = approach(camera.fov, P.fov, 60 * dt);
         camera.updateProjectionMatrix();
       }
       return;
     }
-    // Voo livre: camera de perseguicao atras do nariz.
-    const dist = P.camDist * (warp ? P.camWarpMult : 1);
-    _v1.copy(fwd).multiplyScalar(-1);                          // direcao "atras"
-    _v3.copy(pos).addScaledVector(_v1, dist).addScaledVector(shipUp, P.camHeight);
-    camera.position.lerp(_v3, clamp(P.camLerp * dt, 0, 1));
 
-    _v4.copy(pos).addScaledVector(fwd, P.camLook);
+    // Voo livre: a camera SEGUE A POSICAO da nave rigidamente (sem lag -> nunca
+    // some em alta velocidade). Suaviza apenas a direcao e a distancia.
+    // Distancia: mais perto conforme acelera; bem mais perto no hyper.
+    let dist;
+    if (warp) dist = P.camDist * P.camWarpMult;
+    else { const sf = clamp(Math.abs(speed) / P.maxSpeed, 0, 1); dist = P.camDist * (1 - 0.30 * sf); }
+    if (dist < P.camMinDist) dist = P.camMinDist;
+    camDistCur += (dist - camDistCur) * clamp(P.camTurn * dt, 0, 1);
+
+    camFwd.lerp(fwd, clamp(P.camTurn * dt, 0, 1));
+    if (camFwd.lengthSq() < 1e-9) camFwd.copy(fwd);
+    camFwd.normalize();
+
+    _v3.copy(pos).addScaledVector(camFwd, -camDistCur).addScaledVector(shipUp, P.camHeight);
+    camera.position.copy(_v3);            // rigido na translacao
+
+    _v4.copy(pos).addScaledVector(camFwd, P.camLook);
     camera.lookAt(_v4);
 
     const targetFov = warp ? P.fovWarp : P.fov;
@@ -768,7 +797,9 @@ export function createNaveMode(ctx){
     savedTarget.copy(controls.target);
 
     controls.enabled = false;
-    camera.near = Math.min(savedNear, 0.02 * Mk); camera.fov = P.fov; camera.updateProjectionMatrix();
+    camera.near = Math.min(savedNear, 0.005 * Mk); camera.fov = P.fov; camera.updateProjectionMatrix();
+    camFwd.copy(fwd);              // direcao inicial da camera
+    camDistCur = P.camDist;        // distancia inicial da camera
     camera.position.copy(pos).addScaledVector(fwd, -P.camDist).addScaledVector(shipUp, P.camHeight);
     camera.lookAt(pos);
 
