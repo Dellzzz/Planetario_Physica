@@ -26,11 +26,12 @@ import { createUranus } from '../objects/uranus.js';
 import { createNeptune } from '../objects/neptune.js';
 import { createDecorations } from '../objects/decorations.js';
 import { createDiagram } from '../objects/diagram.js';
+import { buildShip, createNaveMode } from './nave.js'; // <-- NAVE: modo de exploracao
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
 
 let scene, renderer, camera, controls, cameraFocus, ui;
-let bodies = [], sun = null, sunLight = null, bg = null, indicator = null, decorations = null, diagram = null;
+let bodies = [], sun = null, sunLight = null, bg = null, indicator = null, decorations = null, diagram = null, nave = null;
 const moonParent = {}; // id da lua -> corpo do planeta-mae (para o modo diagrama)
 const clock = new THREE.Clock();
 
@@ -195,6 +196,18 @@ function init() {
 
   createSelection({ camera, domElement: renderer.domElement, targets: selectables, onSelect, onMiss: null });
 
+  // ---- MODO NAVE (exploracao em primeira pessoa) -----------------------------
+  // A nave escala pelo raio da Terra do projeto e nasce junto da Terra.
+  // O nave.js injeta sozinho a HUD de voo, o CSS e o botao PILOTAR.
+  const ship = buildShip(earth.radius);
+  scene.add(ship.group);                                  // a nave fica no scene RAIZ
+  nave = createNaveMode({
+    camera, controls, bodies, ship,
+    spawnBody: earth,
+    overviewUI: document.getElementById('hud-root'),      // some durante o voo
+    onExit: () => { cameraFocus.reset(); indicator.clear(); },
+  });
+
   window.addEventListener('resize', onResize);
   document.addEventListener('visibilitychange', () => {
     state.hidden = document.hidden;
@@ -222,15 +235,18 @@ function animate() {
   const elapsed = clock.elapsedTime;
   if (state.hidden) return; // economiza bateria quando a aba nao esta visivel
 
+  const naveActive = nave && nave.active;  // modo nave assume camera e controle
+  const tScale = naveActive ? 0.1 : 1;     // pilotando: planetas 10x mais lentos
+
   if (!state.paused) {
     if (diagram && diagram.active()) {
       diagram.update(delta); // no modo diagrama, este controlador posiciona os astros (orbitas congeladas)
     } else {
       for (const b of bodies) {
-        b.update(delta);
-        if (b.atmosphere) b.atmosphere.rotation.y += (b.atmosphereSpeed || 0) * delta;
+        b.update(delta * tScale);
+        if (b.atmosphere) b.atmosphere.rotation.y += (b.atmosphereSpeed || 0) * delta * tScale;
       }
-      if (decorations) decorations.update(delta);
+      if (decorations) decorations.update(delta * tScale);
     }
     // pulsacao do Sol (intensidade luminosa variavel + brilho) -- sempre ativa
     sunLight.intensity = 2.6 + Math.sin(elapsed * 0.8) * 0.35;
@@ -242,9 +258,13 @@ function animate() {
     if (bg) { bg.near.rotation.y += delta * 0.006; bg.far.rotation.y += delta * 0.0035; }
   }
 
-  cameraFocus.update(delta);
-  indicator.update(delta, elapsed);
-  controls.update();
+  if (naveActive) {
+    nave.update(delta);            // a nave controla a camera enquanto pilota
+  } else {
+    cameraFocus.update(delta);
+    indicator.update(delta, elapsed);
+    controls.update();
+  }
   renderer.render(scene, camera);
 }
 
