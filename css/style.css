@@ -50,7 +50,7 @@ html, body {
 }
 .brand-title {
   font-family: 'Orbitron', sans-serif; font-weight: 900;
-  font-size: clamp(15px, 4.5vw, 22px); letter-spacing: 2px;
+  font-size: clamp(13px, 3.4vw, 17px); letter-spacing: 1.5px;
   color: #fff; text-shadow: 0 0 16px rgba(196,77,255,0.6);
 }
 .brand-sub { color: var(--text-dim); font-size: 12px; letter-spacing: 1px; }
@@ -183,7 +183,7 @@ html, body {
 @media (max-width: 760px) {
   .topbar { padding: 12px 14px; }
   .brand-sub { display: none; }
-  .brand-title { font-size: 17px; letter-spacing: 1px; }
+  .brand-title { font-size: 13px; letter-spacing: 1px; }
 
   /* selecao rapida no TOPO, em linha rolavel -> sempre visivel (nao fica atras do painel) */
   .quickbar {
@@ -359,3 +359,105 @@ html, body {
   animation:nv-warpspin 1.2s linear infinite;}
 #warp-fx.on{opacity:0.9;}
 @keyframes nv-warpspin{to{transform:rotate(360deg);}}
+
+/* =============================================================================
+   PLATAFORMA DA FISICA -- HUD principal atualizada
+   Barra superior: titulo menor + PILOTAR + menu hamburguer.
+   Menu "Astros" (abaixo do titulo) envolve a lista de corpos.
+   ============================================================================= */
+
+/* ---------- Barra superior: acoes (PILOTAR + menu) ---------- */
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+
+/* botao PILOTAR (menor, no topo) */
+.fly-btn {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: 1.5px;
+  font-size: 11px; color: #04121a; padding: 9px 15px; border-radius: 11px; border: none;
+  cursor: pointer; white-space: nowrap;
+  background: linear-gradient(135deg, #7ff0ff, #46e6ff 55%, #1ea7c4);
+  box-shadow: 0 0 16px rgba(70,230,255,0.45), 0 4px 12px rgba(0,0,0,0.4);
+  transition: transform .08s ease, box-shadow .2s ease;
+}
+.fly-btn:hover { box-shadow: 0 0 22px rgba(70,230,255,0.6), 0 4px 12px rgba(0,0,0,0.4); }
+.fly-btn:active { transform: scale(0.95); }
+
+/* ---------- Menu hamburguer ---------- */
+.menu { position: relative; }
+.menu-btn {
+  width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
+  border: 1px solid rgba(196,77,255,0.4); background: rgba(20,22,44,0.6);
+  cursor: pointer; backdrop-filter: blur(8px); transition: all .2s ease;
+}
+.menu-btn:hover { border-color: var(--neon); box-shadow: 0 0 14px rgba(196,77,255,0.5); }
+.menu-btn[aria-expanded="true"] { border-color: var(--neon); background: rgba(196,77,255,0.18); }
+.menu-ic {
+  width: 22px; height: 22px; display: block;
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAFmUlEQVR42u2bX2hcVR7HP79z7txmJskkMSkmSql/Kt1t9EFxWVlQ2oV9KAgqYh8WpeqDLwrusqzKviTZB1+Wssgi7ILsP9GH+qIsLPiwtKxoBUVFdKHYaiu1Nk3byaTpnZl77zm/fZiZNptMkokBd257v3CZO8O9w3x/55zf73u+vzuQI0eOHDlyXLOQ9S5QRQ5PY3fvzhizw8A0TgT9zt+hU5isj/B6HIK1bpQZ/IdTE6VdO+V+4/xtaUJgAFWVnmNqQKxVpyqFoiaSmOMfv1//p8xcWGhz6XoJtG+o/HnirsFBec2WzQ8oSm8v5BSI9Mr7uhKf9l9WIvfo+HNnj6wWBOm05gEuvj4xWhI+tTcGExQ1IUF6OgA1hbPaPBdwDVVbk0K94c+5uruj/9dzswDLc0LQIXlY2UMavSZP2LKZ4LyLCSTkktLDIbi8DNqvmkAUaVwasmPVhKdE+K1OEbTmyhoBmGtGaAt6D/2iGDFUdI1s0XtB0ATSCMRgSdHQchcAkysrwqq0PFo3qoprXSXZ4O/rkCwoeEBQDOqFuPsq8HmTalQx/yrDzxsLPhWLSo+HQAFNm6MPoIKieAxBksrbS7mtnQRBmEJOsD0cG2ocGhix99SqXpVNCIrvKxfK/zCSYtnI4rw7cq6y5ac3cTJmBpVlPGQ19SeCnnrxhtGRQX05MDwUWgmzJIASr43E8ebJi/L0rt+cPt/m1LUU1mZAFWD2wNYdVuSmODYFTI/PBI8U+3wsoieGn507vpzLxtaVIlmWwzqFaeua77wZuqynJ7NSBy4nc11N/ubIkSPHhpLgwYPYR7ZmLAnOoezDy2YEXEs8XNWOkKxDXgGqf7/+x2Gf/WGfkZDU9XZIAqux17he4+jQ/tNHlnPpajeoUxgR/IVXxrcPlOUvhYLZQ6G9Her9fXGIEKpS+8PEewtxul9k7tiGHaGzL2/tHx0N3rfDdpKqd2RgM7SUlWsgNhZbi9yxb6PG3bc8X1no5AiZjo6QoANl+5gdtpPM+xjBIgSZOQyBpmqjiz4uDtodY+GWJ0VQprGrmUgrHaFA9uDwSMb2AgI4cE1HyJCi1nLvhh0hbbopzRBlqBJoAsm8oq7lD6yXM1d80qr30bx7r2zsvnhBU5OROeBT8I1WthLwiscSJI53uneEWknwxPTQ0PXDxQ+Kg3ZHdNFvrsX0fcJc4VEaMDZadMfO1FZPgkEHW0l1CnPzTHV+9kC419Tlb6WS/AQrG9CO/6/5v+Q8VRp1fXcxdY/f+kKlqrUuy2AnIbTw+/H7CgXZaRVxvdgWWwIrok7QJNGj5V+e+fd6QmhTMvKqlsJLr9GDmE4JpKcxico+fKYEXI4cOXrTEbpmbXFVRPUabYwsbSddeGV8e1CUbWmiJgBS15uzIbBo3SF9feJc7E+NPDF7YjmXrgLQVk7H/zQytG2o7yUTmEespZSZimrARb5eP6P/OPONPrPjwOzZrpuj7fb4GxA8uHPi7cJYsJuKAzLUZhLwMcY0hMpXyYeLl8L7tpVPNTq1x1eu70NYmcHvvXl8X2HE7ua8i1tqymTmEIxP0Nol3xgZNHcHJt4vM3imunGEWugLzd4ljpBkafTx4CIVwJLiC4afAfCfbhyhliVmLFsAwWSEfOtXqrviCGmi4hsqRrSwYUeoVtWP+gMeTi+pExGbibKXKq7RDAJAXPGuFIhNhU8A2LVyMFcEYPowXhX5ejr+q1QKvyoNmOui2CdI02LTLKyABJKq1wGRsNrQivH+jwoyTZeGSLuJcPIXY/eOls2r/aHZnpkc4AHXrPxR6k/ON/xjN/7u3DtdN0aWB+HQ/qHhH02ED8Qqt6dKEaV3tWHz2UAJAmqh6GdfLMZv3flSdX6th6VzR6ib/UCnjkomsNk/TOTIkSNHjhxXN/4L2FaPM3ssfBkAAAAASUVORK5CYII=');
+  background-size: contain; background-repeat: no-repeat; background-position: center;
+}
+.menu-list {
+  position: absolute; top: calc(100% + 8px); right: 0; min-width: 190px;
+  display: flex; flex-direction: column; gap: 4px; padding: 8px;
+  background: var(--panel-bg); backdrop-filter: blur(16px);
+  border: 1px solid rgba(196,77,255,0.4); border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.5), 0 0 22px rgba(196,77,255,0.2);
+  opacity: 0; transform: translateY(-6px) scale(0.98); transform-origin: top right;
+  pointer-events: none; transition: opacity .18s ease, transform .18s ease; z-index: 20;
+}
+.menu-list.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+.menu-item {
+  text-align: left; font-family: 'Poppins', sans-serif; font-size: 13.5px; font-weight: 500;
+  color: var(--text); background: transparent; border: 1px solid transparent;
+  border-radius: 9px; padding: 9px 12px; cursor: pointer; transition: all .15s ease; white-space: nowrap;
+}
+.menu-item:hover { background: rgba(196,77,255,0.14); border-color: rgba(196,77,255,0.3); }
+.menu-item.active { background: rgba(196,77,255,0.22); border-color: var(--neon); color: #fff; }
+
+/* ---------- Menu "Astros" (abaixo do titulo) ---------- */
+.astros { position: absolute; top: 60px; left: 18px; z-index: 9; pointer-events: none; }
+.astros-btn {
+  pointer-events: auto;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: 1.5px; font-size: 12px;
+  color: var(--text); background: rgba(14,16,34,0.62);
+  border: 1px solid color-mix(in srgb, var(--cyan) 45%, transparent);
+  border-radius: 999px; padding: 8px 15px; cursor: pointer; backdrop-filter: blur(8px);
+  display: inline-flex; align-items: center; gap: 8px; transition: all .2s ease;
+}
+.astros-btn::after {
+  content: ""; width: 0; height: 0;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 5px solid currentColor; opacity: 0.85; transition: transform .25s ease;
+}
+.astros-btn:hover { box-shadow: 0 0 14px color-mix(in srgb, var(--cyan) 45%, transparent); }
+.astros-btn.active { border-color: var(--cyan); box-shadow: 0 0 16px color-mix(in srgb, var(--cyan) 40%, transparent); }
+.astros-btn.active::after { transform: rotate(180deg); }
+
+.astros-panel {
+  pointer-events: auto; margin-top: 10px;
+  max-height: 0; overflow: hidden; opacity: 0;
+  transition: max-height .35s cubic-bezier(.2,.8,.2,1), opacity .25s ease;
+}
+.astros-panel.open { max-height: 50vh; opacity: 1; }
+
+/* a lista de astros agora FLUI dentro do painel (sobrepoe o posicionamento antigo) */
+.astros-panel .quickbar {
+  position: static; left: auto; right: auto; top: auto; transform: none;
+  max-width: min(560px, 88vw); justify-content: flex-start; padding: 2px 0; gap: 8px;
+}
+.astros-panel .submenu {
+  position: static; left: auto; right: auto; top: auto; transform: none;
+  max-width: min(560px, 88vw); justify-content: flex-start; padding: 8px 0 2px; gap: 8px;
+  max-height: none; opacity: 1; overflow: visible;
+}
+
+@media (max-width: 760px) {
+  .astros { top: 56px; left: 14px; right: 14px; }
+  .astros-panel .quickbar,
+  .astros-panel .submenu {
+    flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; max-width: none;
+  }
+  .astros-panel .quickbar::-webkit-scrollbar,
+  .astros-panel .submenu::-webkit-scrollbar { display: none; }
+  .astros-panel .quickbar .qbtn, .astros-panel .submenu .qbtn { flex: 0 0 auto; }
+}
