@@ -26,7 +26,7 @@ import { createUranus } from '../objects/uranus.js';
 import { createNeptune } from '../objects/neptune.js';
 import { createDecorations } from '../objects/decorations.js';
 import { createDiagram } from '../objects/diagram.js';
-import { buildShip, createNaveMode } from './nave.js'; // <-- NAVE: modo de exploracao
+import { buildShip, createNaveMode } from './nave.js?v=10'; // <-- NAVE: modo de exploracao
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
 
@@ -192,6 +192,7 @@ function init() {
         diagram.enter();
       }
     },
+    onFly: () => { if (nave) nave.enter(); },   // NAVE: botao PILOTAR fica na barra superior (ui.js)
   });
 
   createSelection({ camera, domElement: renderer.domElement, targets: selectables, onSelect, onMiss: null });
@@ -205,6 +206,7 @@ function init() {
     camera, controls, bodies, ship,
     spawnBody: earth,
     overviewUI: document.getElementById('hud-root'),      // some durante o voo
+    flyButton: false,                                     // o botao PILOTAR agora vem do ui.js (barra superior)
     onExit: () => { cameraFocus.reset(); indicator.clear(); },
   });
 
