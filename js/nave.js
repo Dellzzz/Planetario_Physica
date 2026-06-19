@@ -307,13 +307,13 @@ export function createNaveMode(ctx){
   // Velocidades presas a escala do MUNDO (W) -> nao mudam quando a nave muda de
   // tamanho. Camera/colisao/efeitos presos a escala do MODELO (Mk).
   const P = {
-    maxSpeed: 2.1 * W * S,
+    maxSpeed: 6.0 * S,       // velocidade maxima no voo LIVRE (u/s)
     reverse: 0.4,
-    accel: 1.4 * W * S,
-    idleDecel: 0.52 * W * S,
-    brakeDecel: 4.4 * W * S,
-    warpAccel: 22 * W * S,
-    warpMult: 21,            // 0.7x do hyper anterior
+    accel: 3.5 * W * S,      // aceleracao (subi para a nave chegar aos 6 u/s)
+    idleDecel: 1.2 * W * S,
+    brakeDecel: 9.0 * W * S,
+    warpAccel: 24 * W * S,
+    warpMult: 8,             // hyper = 6 * 8 = ~48 u/s (mantido)
     yawRate: 1.6,         // rad/s ao girar (lado esquerdo, X)
     yawSign: -1,          // INVERTER para 1 se o giro ficar trocado
     pitchRate: 1.3,       // rad/s ao subir/descer (lado esquerdo, Y)
@@ -322,9 +322,10 @@ export function createNaveMode(ctx){
     steerLerp: 3.4,       // suavidade com que a velocidade segue o nariz
     skin: 0.04 * Mk,
     gravMinFactor: 0.18,
-    camDist: 0.040 * Mk,  // distancia base da camera atras da nave (parada)
-    camWarpMult: 0.5,     // hyper: bem mais perto (limitado por camMinDist)
-    camMinDist: 0.024 * Mk, // distancia minima (nunca corta a nave)
+    camDist: 0.040 * Mk,     // distancia base da camera (nave parada)
+    camMoveMult: 2.0,        // em movimento (na velocidade maxima livre): 2x
+    camWarpDistMult: 3.0,    // em hyper: 3x
+    camMinDist: 0.024 * Mk,  // distancia minima (nunca corta a nave)
     camHeight: 0.012 * Mk,// elevacao da camera acima da nave
     camLook: 0.012 * Mk,  // ponto de mira a frente da nave
     camLerp: 9,           // suavizacao da camera em ORBITA
@@ -667,8 +668,8 @@ export function createNaveMode(ctx){
     // some em alta velocidade). Suaviza apenas a direcao e a distancia.
     // Distancia: mais perto conforme acelera; bem mais perto no hyper.
     let dist;
-    if (warp) dist = P.camDist * P.camWarpMult;
-    else { const sf = clamp(Math.abs(speed) / P.maxSpeed, 0, 1); dist = P.camDist * (1 - 0.30 * sf); }
+    if (warp) dist = P.camDist * P.camWarpDistMult;
+    else { const sf = clamp(Math.abs(speed) / P.maxSpeed, 0, 1); dist = P.camDist * (1 + (P.camMoveMult - 1) * sf); }
     if (dist < P.camMinDist) dist = P.camMinDist;
     camDistCur += (dist - camDistCur) * clamp(P.camTurn * dt, 0, 1);
 
@@ -797,7 +798,7 @@ export function createNaveMode(ctx){
     savedTarget.copy(controls.target);
 
     controls.enabled = false;
-    camera.near = Math.min(savedNear, 0.005 * Mk); camera.fov = P.fov; camera.updateProjectionMatrix();
+    camera.near = Math.min(savedNear, 0.012 * Mk); camera.fov = P.fov; camera.updateProjectionMatrix();
     camFwd.copy(fwd);              // direcao inicial da camera
     camDistCur = P.camDist;        // distancia inicial da camera
     camera.position.copy(pos).addScaledVector(fwd, -P.camDist).addScaledVector(shipUp, P.camHeight);
