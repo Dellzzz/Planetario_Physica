@@ -194,7 +194,7 @@ function nv_defaultDom(){
 export function buildShip(earthRadius){
   const ER = (earthRadius && earthRadius > 0) ? earthRadius : 1.0;
   const g = new THREE.Group();
-  const s = ER * 0.01;            // raio fisico da nave
+  const s = ER * 0.002;           // raio fisico da nave (0.2% do raio da Terra)
   const k = s / 0.01;             // escala do modelo visual
 
   const hull = new THREE.Mesh(
@@ -261,7 +261,7 @@ export function createNaveMode(ctx){
   const clamp = THREE.MathUtils.clamp;
   const lerp  = THREE.MathUtils.lerp;
   const UP = new THREE.Vector3(0, 1, 0);
-  const U  = ship.radius / 0.01;   // unidade de mundo = raio da Terra do seu projeto
+  const U  = ship.radius / 0.01;   // unidade de escala da nave (raio Terra * fator da nave)
   const S  = opt.speedScale;       // multiplicador global de velocidade
 
   function approach(a, b, step){ if (a < b){ a += step; if (a > b) a = b; } else { a -= step; if (a < b) a = b; } return a; }
@@ -274,8 +274,8 @@ export function createNaveMode(ctx){
     accel: 7 * U * S,
     idleDecel: 2.6 * U * S,
     brakeDecel: 22 * U * S,
-    warpAccel: 22 * U * S,
-    warpMult: 7,
+    warpAccel: 110 * U * S,  // compensado (5x) p/ o hyper manter a velocidade de antes
+    warpMult: 35,            // 7 * 5: nave 5x menor, mas hyper continua no ritmo original
     yawRate: 1.6,         // rad/s ao girar (lado esquerdo, X)
     yawSign: -1,          // INVERTER para 1 se o giro ficar trocado
     pitchRate: 1.3,       // rad/s ao subir/descer (lado esquerdo, Y)
