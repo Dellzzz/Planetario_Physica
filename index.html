@@ -31,6 +31,54 @@
     <div class="loader-text">Gerando o cosmos...</div>
   </div>
 
+  <!-- =============================================================================
+     PLATAFORMA DA FISICA -- Marcacao da HUD da Nave
+     Cole este bloco no <body> da pagina do Planetario (logo apos o <canvas>).
+     Os IDs aqui sao os que o nave.js procura por padrao (np_defaultDom).
+     ============================================================================= -->
+
+<!-- Overlay do efeito de hipervelocidade -->
+<div id="warp-fx"></div>
+
+<!-- HUD de voo (fica oculta ate entrar no modo nave) -->
+<div id="flight-hud">
+  <!-- zonas de toque: esquerda controla a nave, direita controla a camera -->
+  <div id="zone-look"></div>
+  <div id="zone-joy"></div>
+
+  <button id="btn-back"><span class="ar">&#9666;</span> SISTEMA</button>
+
+  <div id="telemetry">
+    <div id="tel-name">&mdash;</div>
+    <div id="tel-state">LIVRE</div>
+    <div id="tel-bars">
+      <div class="tel-cell"><b>DIST&Acirc;NCIA</b><span id="tel-dist">0<small>u</small></span></div>
+      <div class="tel-cell"><b>VELOCIDADE</b><span id="tel-spd">0<small>u/s</small></span></div>
+      <div class="tel-cell" id="tel-cell-alt" style="display:none"><b>ALTITUDE</b><span id="tel-alt">0<small>r</small></span></div>
+    </div>
+  </div>
+
+  <div id="joy-hint" class="layer">&#9650; acelerar<br>&#9660; frear/r&eacute;<br>&#9664;&#9654; girar</div>
+  <div id="joy-base"><div id="joy-ring"></div><div id="joy-knob"></div></div>
+
+  <div id="pad">
+    <button class="pbtn orbit" id="btn-orbit"><span class="ic">&#128752;</span><span id="orbit-label">Entrar em &oacute;rbita</span></button>
+    <div id="pad-row">
+      <button class="pbtn small recenter" id="btn-recenter" title="Centralizar c&acirc;mera"><span class="ic">&#127919;</span></button>
+      <button class="pbtn warp" id="btn-warp"><span class="ic">&#9889;</span>Hiper</button>
+      <button class="pbtn brake small" id="btn-brake" title="Freio"><span class="ic">&#9995;</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Botao para assumir a nave: adicione na SUA UI de overview (id opcional 'sys'
+     para o nave.js esconder durante o voo). Exemplo minimo: -->
+<!--
+<div id="sys">
+  <button id="btn-fly">&#128640; PILOTAR NAVE</button>
+</div>
+-->
+  
   <script>
     // Rede de seguranca: se o app nao iniciar (ex.: algum arquivo .js nao foi
     // enviado ao servidor), mostra um aviso em vez de ficar em "loading" infinito.
