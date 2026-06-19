@@ -23,7 +23,7 @@ import * as THREE from 'three';
 // Versao da HUD/estilos. Se mudar a estrutura, suba este numero: o modulo
 // remove uma HUD antiga (de versoes anteriores coladas no index.html) e injeta
 // a atual, evitando IDs faltando.
-const NV_VERSION = '3';
+const NV_VERSION = '4';
 
 // ---- CSS da HUD (injetado uma vez) -----------------------------------------
 const NV_CSS = `
@@ -330,11 +330,28 @@ export function createNaveMode(ctx){
       const isStar = (maxR > 0 && b.radius >= maxR * 0.9) || /sol|sun|star|estrela/i.test(b.id || b.name || '');
       const factor = isStar ? opt.starInfluenceFactor : opt.influenceFactor;
       const inf = b.radius * factor; // estrela: factor 0 (padrao) -> sem poco gravitacional, so colisao
-      return { body:b, mesh:b.mesh, wp:new THREE.Vector3(), radius:b.radius, name:b.name, influence:inf };
+      return {
+        body: b,
+        group: (b.group || null),   // grupo de orbita (posicionado): leitura preferida
+        mesh: (b.mesh || null),     // reserva, caso o grupo nao esteja posicionado
+        wp: new THREE.Vector3(),
+        radius: b.radius, name: b.name, influence: inf,
+        orbitRadius: (typeof b.orbitRadius === 'number' ? b.orbitRadius : 0)
+      };
     });
   }
   function refreshSamples(){
-    for (const sm of samples){ if (sm.mesh) sm.mesh.getWorldPosition(sm.wp); }
+    for (const sm of samples){
+      let got = false;
+      if (sm.group && sm.group.getWorldPosition){
+        sm.group.getWorldPosition(sm.wp);
+        // aceita a leitura do grupo se nao for a origem (ou se nao houver mesh alternativo)
+        if (sm.wp.lengthSq() > 1e-8 || !sm.mesh) got = true;
+      }
+      if (!got && sm.mesh && sm.mesh.getWorldPosition){
+        sm.mesh.getWorldPosition(sm.wp);
+      }
+    }
   }
 
   const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3();
@@ -459,28 +476,24 @@ export function createNaveMode(ctx){
     return domBody ? lerp(1, P.gravMinFactor, proximity) : 1;
   }
 
-  function resolveCollisions(A, B){
+  // Colisao por ponto: so empurra a nave para FORA quando a NOVA posicao esta
+  // DENTRO da esfera do corpo. Nunca puxa um ponto distante (evita teleporte).
+  function resolveCollisions(B){
     for (const sm of samples){
       const C = sm.wp;
       const R = sm.radius + ship.radius + P.skin;
-      _v4.copy(B).sub(A);
-      const ab2 = _v4.lengthSq();
-      let t = ab2 > 1e-9 ? _v1.copy(C).sub(A).dot(_v4) / ab2 : 0;
-      t = clamp(t, 0, 1);
-      _v5.copy(A).addScaledVector(_v4, t);
-      const dC = _v5.distanceTo(C);
-      if (dC < R){
-        _v1.copy(B).sub(C);
-        let len = _v1.length();
-        if (len < 1e-6){ _v1.set(0,1,0); len = 1; }
-        _v1.divideScalar(len);
-        B.copy(C).addScaledVector(_v1, R);
-        _v2.copy(velDir).multiplyScalar(speed);
-        const into = _v2.dot(_v1);
-        if (into < 0){
-          _v2.addScaledVector(_v1, -into);
-          speed = _v2.length() * 0.5;
-          if (speed > 1e-5) velDir.copy(_v2).divideScalar(_v2.length());
+      _v4.copy(B).sub(C);
+      const d = _v4.length();
+      if (d < R){
+        if (d > 1e-6) _v4.divideScalar(d); else _v4.copy(UP);
+        B.copy(C).addScaledVector(_v4, R);   // sobe ate a superficie
+        _v5.copy(velDir).multiplyScalar(speed);
+        const into = _v5.dot(_v4);
+        if (into < 0){                        // cancela a componente que entra no corpo
+          _v5.addScaledVector(_v4, -into);
+          const m = _v5.length();
+          speed = m * 0.5;
+          if (m > 1e-5) velDir.copy(_v5).divideScalar(m);
         }
       }
     }
@@ -567,9 +580,8 @@ export function createNaveMode(ctx){
     if (velDir.lengthSq() < 1e-9) velDir.copy(fwd);
     velDir.normalize();
 
-    _v1.copy(pos);
     pos.addScaledVector(velDir, speed * dt);
-    resolveCollisions(_v1, pos);
+    resolveCollisions(pos);
 
     buildOrientation(bank);   // reorienta apos colisao (fwd/shipUp continuam validos)
     ship.group.position.copy(pos);
@@ -656,12 +668,34 @@ export function createNaveMode(ctx){
     if (!sp) sp = samples[0];
 
     const C = _v1.copy(sp.wp);
+    // Fallback: se a leitura de posicao vier proxima da origem (onde fica a
+    // estrela) mas o corpo tem raio de orbita, usa o raio de orbita para a nave
+    // NAO nascer dentro do Sol.
+    if (sp.orbitRadius > 0 && C.length() < sp.orbitRadius * 0.5){
+      C.set(sp.orbitRadius, 0, 0);
+    }
     _v2.copy(C);
     if (_v2.lengthSq() < 1e-6) _v2.set(0, 0, 1);
-    _v2.y = 0; _v2.normalize();
-    const d = sp.influence * 1.15;
+    _v2.y = 0;
+    if (_v2.lengthSq() < 1e-9) _v2.set(0, 0, 1);
+    _v2.normalize();
+    const spawnInf = (sp.influence > 0) ? sp.influence : sp.radius * opt.influenceFactor;
+    const d = spawnInf * 1.15;
     pos.copy(C).addScaledVector(_v2, d);
     pos.y = 0;
+
+    // Seguranca: nunca nascer DENTRO de um corpo (empurra para fora se preciso).
+    for (const sm of samples){
+      const dd = pos.distanceTo(sm.wp);
+      const minD = sm.radius + ship.radius + P.skin * 6;
+      if (dd < minD){
+        _v4.copy(pos).sub(sm.wp);
+        if (_v4.lengthSq() < 1e-9) _v4.copy(_v2);
+        _v4.normalize();
+        pos.copy(sm.wp).addScaledVector(_v4, minD * 1.25);
+        pos.y = 0;
+      }
+    }
 
     _v3.copy(C).sub(pos); _v3.y = 0;
     if (_v3.lengthSq() < 1e-9) _v3.set(0, 0, 1);
