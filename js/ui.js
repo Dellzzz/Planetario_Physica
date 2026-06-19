@@ -1,16 +1,17 @@
 // =============================================================================
 // ui.js
-// Interface educacional (HUD). A barra de selecao mostra apenas Sol + planetas;
-// ao escolher um planeta, a camera VIAJA ate ele e abre um SUBMENU com as suas
-// luas. Escolher uma lua faz a camera viajar ate ela.
-// O painel funciona como menu suspenso (cabecalho com seta expande/recolhe).
+// Interface educacional (HUD). Barra superior com titulo (menor), botao PILOTAR
+// e um menu suspenso (hamburguer) com: Modo diagrama, Trajetoria, Pausar e
+// Resetar. Abaixo do titulo, um menu "Astros" que lista Sol + planetas; ao
+// escolher um planeta a camera VIAJA ate ele e abre um SUBMENU com as luas.
+// O painel lateral mostra as informacoes do astro selecionado.
 // =============================================================================
 
-export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause, onToggleOrbits, onToggleDiagram }) {
-  // barra superior de selecao: apenas Sol + planetas (planetas com luas ganham uma seta)
+export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause, onToggleOrbits, onToggleDiagram, onFly }) {
+  // lista de astros: Sol + planetas (apenas o nome; sem simbolos)
   const quick = groups.map((g) =>
     '<button class="qbtn" data-id="' + g.planet.id + '" style="--accent:' + g.planet.color + '">' +
-    g.planet.name + (g.moons.length ? ' <span class="qbtn-caret" aria-hidden="true">&#9662;</span>' : '') +
+    g.planet.name +
     '</button>'
   ).join('');
 
@@ -21,15 +22,26 @@ export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause
     '    <span class="brand-title">PLANETARIO VIRTUAL</span>',
     '    <span class="brand-sub">Sistema Solar</span>',
     '  </div>',
-    '  <div class="controls">',
-    '    <button class="ctrl-btn" id="btn-diagram" title="Modo diagrama: alinhar os astros" aria-label="Modo diagrama">&#9638;</button>',
-    '    <button class="ctrl-btn" id="btn-orbits" title="Mostrar/ocultar orbitas" aria-label="Orbitas">&#9678;</button>',
-    '    <button class="ctrl-btn" id="btn-pause" title="Pausar/continuar" aria-label="Pausar">&#10073;&#10073;</button>',
-    '    <button class="ctrl-btn" id="btn-reset" title="Voltar (resetar visao)" aria-label="Resetar">&#8635;</button>',
+    '  <div class="topbar-actions">',
+    '    <button class="fly-btn" id="go-fly">PILOTAR</button>',
+    '    <div class="menu" id="menu">',
+    '      <button class="menu-btn" id="btn-menu" aria-label="Menu" aria-expanded="false"><span class="menu-ic" aria-hidden="true"></span></button>',
+    '      <div class="menu-list" id="menu-list" role="menu">',
+    '        <button class="menu-item" id="btn-diagram" role="menuitem">Modo diagrama</button>',
+    '        <button class="menu-item" id="btn-orbits" role="menuitem">Desativar trajet&oacute;ria</button>',
+    '        <button class="menu-item" id="btn-pause" role="menuitem">Pausar</button>',
+    '        <button class="menu-item" id="btn-reset" role="menuitem">Resetar vis&atilde;o</button>',
+    '      </div>',
+    '    </div>',
     '  </div>',
     '</div>',
-    '<div class="quickbar">' + quick + '</div>',
-    '<div class="submenu" id="submenu" aria-label="Luas do planeta selecionado"></div>',
+    '<div class="astros" id="astros">',
+    '  <button class="astros-btn" id="btn-astros" aria-expanded="false">Astros</button>',
+    '  <div class="astros-panel" id="astros-panel">',
+    '    <div class="quickbar">' + quick + '</div>',
+    '    <div class="submenu" id="submenu" aria-label="Luas do planeta selecionado"></div>',
+    '  </div>',
+    '</div>',
     '<aside class="panel collapsed" id="panel">',
     '  <div class="panel-head" id="panel-head" role="button" tabindex="0" aria-expanded="false" aria-label="Expandir ou recolher informacoes do astro">',
     '    <div class="panel-titles">',
@@ -46,13 +58,18 @@ export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause
     '    </div>',
     '  </div>',
     '</aside>',
-    '<div class="hint" id="hint">Toque em um planeta para viajar ate ele &nbsp;&bull;&nbsp; arraste para girar &nbsp;&bull;&nbsp; pince para aproximar</div>',
+    '<div class="hint" id="hint">Toque em "Astros" para escolher um astro &nbsp;&bull;&nbsp; arraste para girar &nbsp;&bull;&nbsp; pince para aproximar</div>',
   ].join('');
 
   const $ = (s) => root.querySelector(s);
   const panel = $('#panel');
   const head = $('#panel-head');
   const submenu = $('#submenu');
+  const menu = $('#menu');
+  const menuList = $('#menu-list');
+  const btnMenu = $('#btn-menu');
+  const astrosPanel = $('#astros-panel');
+  const btnAstros = $('#btn-astros');
   const byId = Object.fromEntries(bodies.map((b) => [b.id, b]));
   const groupByPlanetId = Object.fromEntries(groups.map((g) => [g.planet.id, g]));
   const parentOfMoon = {};
@@ -70,6 +87,21 @@ export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause
     head.setAttribute('aria-expanded', String(!c));
   }
   function toggleCollapsed() { setCollapsed(!panel.classList.contains('collapsed')); }
+
+  // ---- menu suspenso (hamburguer) ----
+  function setMenuOpen(o) {
+    menuList.classList.toggle('open', o);
+    btnMenu.setAttribute('aria-expanded', String(o));
+  }
+  function toggleMenu() { setMenuOpen(!menuList.classList.contains('open')); }
+
+  // ---- menu "Astros" ----
+  function setAstrosOpen(o) {
+    astrosPanel.classList.toggle('open', o);
+    btnAstros.setAttribute('aria-expanded', String(o));
+    btnAstros.classList.toggle('active', o);
+  }
+  function toggleAstros() { setAstrosOpen(!astrosPanel.classList.contains('open')); }
 
   // ---- submenu de luas ----
   function openSubmenu(g) {
@@ -100,10 +132,10 @@ export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause
     panel.classList.add('open');
     // no celular abre RECOLHIDO (so o nome) para o astro ficar visivel; no desktop, expandido
     setCollapsed(isMobile());
-    // submenu primeiro (para os botoes ja existirem), depois marca o botao ativo
+    // garante que a lista de astros esteja aberta para mostrar o submenu de luas
     const g = groupByPlanetId[body.id];
-    if (g) { if (g.moons.length) ensureSubmenu(g); else closeSubmenu(); }
-    else { const pg = parentOfMoon[body.id]; if (pg) ensureSubmenu(pg); }
+    if (g) { if (g.moons.length) { setAstrosOpen(true); ensureSubmenu(g); } else closeSubmenu(); }
+    else { const pg = parentOfMoon[body.id]; if (pg) { setAstrosOpen(true); ensureSubmenu(pg); } }
     setActiveButton(body.id);
     hideHint();
   }
@@ -124,22 +156,44 @@ export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapsed(); }
   });
 
-  $('#btn-reset').addEventListener('click', () => { hide(); onReset(); });
+  // PILOTAR -> entra no modo nave (callback do main.js)
+  if (typeof onFly === 'function') {
+    $('#go-fly').addEventListener('click', () => onFly());
+  }
+
+  // menu hamburguer abre/fecha
+  btnMenu.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(); });
+  document.addEventListener('pointerdown', (e) => {
+    if (menuList.classList.contains('open') && !menu.contains(e.target)) setMenuOpen(false);
+  });
+
+  // menu "Astros" abre/fecha
+  btnAstros.addEventListener('click', () => toggleAstros());
+
+  // itens do menu (em texto, sem simbolos)
+  $('#btn-reset').addEventListener('click', () => { setMenuOpen(false); hide(); onReset(); });
 
   $('#btn-pause').addEventListener('click', () => {
     paused = !paused;
-    $('#btn-pause').innerHTML = paused ? '&#9654;' : '&#10073;&#10073;';
+    $('#btn-pause').innerHTML = paused ? 'Continuar' : 'Pausar';
     $('#btn-pause').classList.toggle('active', paused);
     onTogglePause(paused);
+    setMenuOpen(false);
   });
   $('#btn-orbits').addEventListener('click', () => {
     orbitsVisible = !orbitsVisible;
+    $('#btn-orbits').innerHTML = orbitsVisible ? 'Desativar trajet&oacute;ria' : 'Ativar trajet&oacute;ria';
     $('#btn-orbits').classList.toggle('active', !orbitsVisible);
     onToggleOrbits(orbitsVisible);
+    setMenuOpen(false);
   });
-  $('#btn-diagram').addEventListener('click', () => onToggleDiagram());
+  $('#btn-diagram').addEventListener('click', () => { setMenuOpen(false); onToggleDiagram(); });
 
-  function setDiagramActive(v) { $('#btn-diagram').classList.toggle('active', v); }
+  function setDiagramActive(v) {
+    const b = $('#btn-diagram');
+    b.classList.toggle('active', v);
+    b.innerHTML = v ? 'Sair do diagrama' : 'Modo diagrama';
+  }
 
   return { showInfo, hide, hideHint, setDiagramActive };
 }
