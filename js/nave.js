@@ -23,7 +23,7 @@ import * as THREE from 'three';
 // Versao da HUD/estilos. Se mudar a estrutura, suba este numero: o modulo
 // remove uma HUD antiga (de versoes anteriores coladas no index.html) e injeta
 // a atual, evitando IDs faltando.
-const NV_VERSION = '2';
+const NV_VERSION = '3';
 
 // ---- CSS da HUD (injetado uma vez) -----------------------------------------
 const NV_CSS = `
@@ -241,7 +241,7 @@ export function buildShip(earthRadius){
 // ctx = { camera, controls, bodies, ship,
 //         spawnBody?, overviewUI?, onExit?, flyButton?, dom?, options? }
 //   options : { influenceFactor (planetas, padrao 7),
-//               starInfluenceFactor (estrela/Sol, padrao 1.3),
+//               starInfluenceFactor (estrela/Sol, padrao 0 = sem gravidade),
 //               speedScale (padrao 1) }
 // Metodos: enter(spawnBody?), exit(), update(dt), get active(), get target()
 // ---------------------------------------------------------------------------
@@ -256,7 +256,7 @@ export function createNaveMode(ctx){
   const onExit   = ctx.onExit || null;
   const dom      = ctx.dom || nv_defaultDom();
   if (ctx.overviewUI) dom.sys = ctx.overviewUI;
-  const opt = Object.assign({ influenceFactor: 7, starInfluenceFactor: 1.3, speedScale: 1 }, ctx.options || {});
+  const opt = Object.assign({ influenceFactor: 7, starInfluenceFactor: 0, speedScale: 1 }, ctx.options || {});
 
   const clamp = THREE.MathUtils.clamp;
   const lerp  = THREE.MathUtils.lerp;
@@ -325,12 +325,11 @@ export function createNaveMode(ctx){
     let maxR = 0;
     for (const b of bodies){ if (b.radius > maxR) maxR = b.radius; }
     samples = bodies.map(function(b){
-      let inf;
-      if (b.influence != null) inf = b.influence;
-      else {
-        const isStar = (maxR > 0 && b.radius >= maxR * 0.9) || /sol|sun|star|estrela/i.test(b.id || b.name || '');
-        inf = b.radius * (isStar ? opt.starInfluenceFactor : opt.influenceFactor);
-      }
+      // A zona de gravidade e SEMPRE calculada pelo raio aqui (ignora qualquer
+      // "influence" que o CelestialBody possa ter), para o Sol nunca dominar.
+      const isStar = (maxR > 0 && b.radius >= maxR * 0.9) || /sol|sun|star|estrela/i.test(b.id || b.name || '');
+      const factor = isStar ? opt.starInfluenceFactor : opt.influenceFactor;
+      const inf = b.radius * factor; // estrela: factor 0 (padrao) -> sem poco gravitacional, so colisao
       return { body:b, mesh:b.mesh, wp:new THREE.Vector3(), radius:b.radius, name:b.name, influence:inf };
     });
   }
@@ -423,7 +422,7 @@ export function createNaveMode(ctx){
     const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
     fwd.set(sy * cp, sp, cy * cp).normalize();
     _right.set(cy, 0, -sy).normalize();            // direita horizontal (depende so do yaw)
-    shipUp.crossVectors(_right, fwd).normalize();   // cima da nave
+    shipUp.crossVectors(fwd, _right).normalize();   // cima da nave (ordem correta -> rotacao pura)
     _m.makeBasis(_right, shipUp, fwd);              // x=direita, y=cima, z=frente
     ship.group.quaternion.setFromRotationMatrix(_m);
     if (bank) ship.group.rotateZ(bank);
