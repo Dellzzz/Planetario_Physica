@@ -1,0 +1,119 @@
+/* =============================================================================
+   PLATAFORMA DA FISICA -- Estilos do Modulo de Nave Espacial
+   Importe DEPOIS do seu CSS principal (ou cole num bloco <style>).
+   Requer as fontes Orbitron + Share Tech Mono (Google Fonts) ou troque pelas suas.
+   ============================================================================= */
+
+/* Variaveis de acento da HUD. Seguro mesclar com seu :root (ignore as repetidas). */
+:root{
+  --nv-cyan:#46e6ff;
+  --nv-cyan-dim:#1d6e7e;
+  --nv-amber:#ffb84d;
+  --nv-danger:#ff5a6e;
+  --nv-ok:#7CFFB2;
+  --nv-glass:rgba(8,16,26,0.55);
+  --nv-glass-2:rgba(8,16,26,0.78);
+  --nv-line:rgba(70,230,255,0.35);
+  --nv-line-soft:rgba(70,230,255,0.16);
+}
+
+/* ---------- HUD de voo (so aparece pilotando) ---------- */
+#flight-hud{position:fixed; inset:0; z-index:20; display:none;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  font-family:"Orbitron",system-ui,sans-serif; color:#dff6ff;
+  -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none;}
+#flight-hud.active{display:block;}
+#flight-hud .layer{position:absolute; inset:0; pointer-events:none;}
+
+/* zonas de toque: esquerda = joystick, direita = camera */
+#zone-look{position:absolute; top:0; right:0; width:55%; height:100%;
+  pointer-events:auto; touch-action:none; z-index:21;}
+#zone-joy{position:absolute; top:0; left:0; width:45%; height:100%;
+  pointer-events:auto; touch-action:none; z-index:21;}
+
+/* telemetria (topo) */
+#telemetry{position:absolute; top:calc(10px + env(safe-area-inset-top)); left:50%;
+  transform:translateX(-50%); z-index:24; pointer-events:none; text-align:center;
+  min-width:min(86vw,560px);}
+#tel-name{font-weight:900; font-size:clamp(15px,4.6vw,22px); letter-spacing:0.16em;
+  color:#eafcff; text-shadow:0 0 14px rgba(70,230,255,0.55);}
+#tel-state{font-size:10px; letter-spacing:0.34em; color:var(--nv-cyan); opacity:0.85; margin-top:2px;}
+#tel-bars{display:flex; gap:10px; justify-content:center; margin-top:8px;
+  font-family:"Share Tech Mono",monospace;}
+.tel-cell{background:var(--nv-glass); border:1px solid var(--nv-line-soft); border-radius:8px;
+  padding:5px 11px; backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.25) inset;}
+.tel-cell b{display:block; font-size:8px; letter-spacing:0.22em; color:var(--nv-cyan-dim);
+  font-family:"Orbitron"; font-weight:700;}
+.tel-cell span{font-size:clamp(13px,3.6vw,16px); color:#cdeefb;}
+.tel-cell span small{font-size:0.62em; color:#6da6b8; margin-left:2px;}
+
+/* botao voltar ao sistema */
+#btn-back{position:absolute; top:calc(10px + env(safe-area-inset-top));
+  left:calc(12px + env(safe-area-inset-left)); z-index:26; pointer-events:auto;
+  border:1px solid var(--nv-line); background:var(--nv-glass-2); color:#bfeaff;
+  font-family:"Orbitron"; font-weight:700; font-size:11px; letter-spacing:0.12em;
+  padding:9px 12px; border-radius:10px; display:flex; align-items:center; gap:7px;
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);}
+#btn-back:active{transform:scale(0.96); border-color:var(--nv-cyan);}
+#btn-back .ar{font-size:14px; line-height:1;}
+
+/* joystick flutuante */
+#joy-base{position:absolute; width:132px; height:132px; left:0; top:0;
+  margin-left:-66px; margin-top:-66px; z-index:23; pointer-events:none;
+  opacity:0; transition:opacity .18s ease;}
+#joy-base.show{opacity:1;}
+#joy-ring{position:absolute; inset:0; border-radius:50%;
+  border:1.5px solid var(--nv-line);
+  background:radial-gradient(circle at 50% 42%, rgba(70,230,255,0.10), rgba(6,14,22,0.55));
+  box-shadow:0 0 22px rgba(70,230,255,0.18), 0 0 0 1px rgba(0,0,0,0.4) inset;}
+#joy-ring::before{content:""; position:absolute; inset:50% 12% auto 12%; height:1px;
+  background:var(--nv-line-soft);}
+#joy-ring::after{content:""; position:absolute; inset:12% 50% 12% auto; width:1px;
+  background:var(--nv-line-soft);}
+#joy-knob{position:absolute; width:58px; height:58px; left:50%; top:50%;
+  margin-left:-29px; margin-top:-29px; border-radius:50%;
+  background:radial-gradient(circle at 42% 36%, #7ff0ff, #1aa6c2 60%, #0c5366);
+  box-shadow:0 0 18px rgba(70,230,255,0.6), 0 4px 12px rgba(0,0,0,0.5);
+  border:1px solid rgba(190,250,255,0.7);}
+#joy-knob::after{content:""; position:absolute; inset:34% 0 auto 0; height:8%;
+  background:rgba(4,10,16,0.5); border-radius:50%; filter:blur(0.5px);}
+
+/* dica do throttle */
+#joy-hint{position:absolute; z-index:23; pointer-events:none;
+  left:calc(86px + env(safe-area-inset-left)); bottom:calc(96px + env(safe-area-inset-bottom));
+  width:120px; color:var(--nv-cyan-dim); font-size:9px; letter-spacing:0.18em;
+  opacity:.7; line-height:1.5;}
+
+/* botoes contextuais (canto inferior direito) */
+#pad{position:absolute; right:calc(14px + env(safe-area-inset-right));
+  bottom:calc(18px + env(safe-area-inset-bottom)); z-index:25; pointer-events:none;
+  display:flex; flex-direction:column; gap:11px; align-items:flex-end;}
+.pbtn{pointer-events:auto; min-width:120px; height:48px; padding:0 14px; border-radius:13px;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  font-family:"Orbitron"; font-weight:700; font-size:12px; letter-spacing:0.08em;
+  color:#d7f3ff; background:var(--nv-glass-2); border:1px solid var(--nv-line);
+  backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
+  box-shadow:0 6px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,0,0,0.25) inset;
+  transition:transform .08s ease, border-color .15s ease, background .15s ease, opacity .15s ease;}
+.pbtn .ic{font-size:16px; line-height:1;}
+.pbtn:active{transform:scale(0.95);}
+.pbtn[disabled]{opacity:0.32; filter:saturate(0.4); pointer-events:none;}
+.pbtn.small{min-width:48px; width:48px; padding:0;}
+.pbtn.warp.on{border-color:var(--nv-amber); color:#ffe6bf; background:rgba(60,38,8,0.7);
+  box-shadow:0 0 22px rgba(255,184,77,0.4), 0 6px 16px rgba(0,0,0,0.4);}
+.pbtn.brake.on{border-color:var(--nv-danger); color:#ffd2d8; background:rgba(60,12,18,0.7);}
+.pbtn.orbit.go{border-color:var(--nv-ok); color:#dcffe9; background:rgba(14,52,32,0.7);
+  box-shadow:0 0 22px rgba(124,255,178,0.35), 0 6px 16px rgba(0,0,0,0.4);}
+.pbtn.orbit.exit{border-color:var(--nv-amber);}
+#pad-row{display:flex; gap:11px;}
+
+/* efeito de hipervelocidade (overlay de tela cheia) */
+#warp-fx{position:fixed; inset:0; z-index:19; pointer-events:none; opacity:0;
+  transition:opacity .25s ease; mix-blend-mode:screen;
+  background:
+    radial-gradient(60% 60% at 50% 50%, transparent 30%, rgba(120,200,255,0.10) 70%, transparent 72%),
+    repeating-conic-gradient(from 0deg at 50% 50%, rgba(150,220,255,0.0) 0deg 3deg, rgba(150,220,255,0.10) 3.4deg 4deg);
+  animation:nv-warpspin 1.2s linear infinite;}
+#warp-fx.on{opacity:0.9;}
+@keyframes nv-warpspin{to{transform:rotate(360deg);}}
