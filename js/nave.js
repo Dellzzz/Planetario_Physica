@@ -20,6 +20,11 @@
 
 import * as THREE from 'three';
 
+// Versao da HUD/estilos. Se mudar a estrutura, suba este numero: o modulo
+// remove uma HUD antiga (de versoes anteriores coladas no index.html) e injeta
+// a atual, evitando IDs faltando.
+const NV_VERSION = '2';
+
 // ---- CSS da HUD (injetado uma vez) -----------------------------------------
 const NV_CSS = `
 :root{
@@ -134,23 +139,36 @@ const NV_HUD_HTML = `
 `;
 
 function nv_injectStyles(){
-  if (document.getElementById('nv-styles')) return;
+  const cur = document.getElementById('nv-styles');
+  if (cur && cur.dataset.v === NV_VERSION) return;
+  if (cur) cur.remove();   // estilos de versao antiga -> troca
   const s = document.createElement('style');
   s.id = 'nv-styles';
+  s.dataset.v = NV_VERSION;
   s.textContent = NV_CSS;
   document.head.appendChild(s);
 }
 function nv_ensureHud(){
-  if (document.getElementById('flight-hud')) return;
+  const cur = document.getElementById('flight-hud');
+  // ja existe a HUD desta versao (e com os elementos novos)? nada a fazer.
+  if (cur && cur.dataset.v === NV_VERSION && document.getElementById('joy-steer')) return;
+  // remove qualquer HUD antiga/incompleta para nao herdar IDs ultrapassados
+  if (cur) cur.remove();
+  const oldWarp = document.getElementById('warp-fx');
+  if (oldWarp) oldWarp.remove();
   const wrap = document.createElement('div');
   wrap.innerHTML = NV_HUD_HTML;
   while (wrap.firstChild) document.body.appendChild(wrap.firstChild);
+  const hud = document.getElementById('flight-hud');
+  if (hud) hud.dataset.v = NV_VERSION;
 }
 function nv_ensureFlyButton(onFly){
   let b = document.getElementById('btn-fly');
+  if (b && b.dataset.v !== NV_VERSION){ b.remove(); b = null; } // botao antigo -> recria limpo
   if (!b){
     b = document.createElement('button');
     b.id = 'btn-fly';
+    b.dataset.v = NV_VERSION;
     b.innerHTML = '&#128640; PILOTAR NAVE';
     document.body.appendChild(b);
   }
@@ -330,7 +348,10 @@ export function createNaveMode(ctx){
   // ---------- entrada de toque: dois analogicos flutuantes ----------
   function bindInput(){
     function makeStick(zoneEl, baseEl, out){
+      const noop = { has: ()=> false, move: ()=>{}, end: ()=>{} };
+      if (!zoneEl || !baseEl) return noop;
       const knob = baseEl.querySelector('.nv-knob');
+      if (!knob) return noop;
       let id = null;
       function place(x, y, reset){
         const m = 80;
