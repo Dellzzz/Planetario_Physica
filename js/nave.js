@@ -194,7 +194,7 @@ function nv_defaultDom(){
 export function buildShip(earthRadius){
   const ER = (earthRadius && earthRadius > 0) ? earthRadius : 1.0;
   const g = new THREE.Group();
-  const s = ER * 0.002;           // raio fisico da nave (0.2% do raio da Terra) - colisao
+  const s = ER * 0.001;           // raio fisico da nave (0.1% do raio da Terra) - colisao
   const k = s / 0.01;             // escala do modelo visual
 
   // materiais: casco escuro metalico + acentos ciano brilhantes
@@ -269,7 +269,7 @@ export function buildShip(earthRadius){
   g.add(trail);
 
   g.visible = false;
-  return { group:g, radius:s, glow, trail, cockpit };
+  return { group:g, radius:s, baseUnit:ER, glow, trail, cockpit };
 }
 
 // ---------------------------------------------------------------------------
@@ -297,35 +297,38 @@ export function createNaveMode(ctx){
   const clamp = THREE.MathUtils.clamp;
   const lerp  = THREE.MathUtils.lerp;
   const UP = new THREE.Vector3(0, 1, 0);
-  const U  = ship.radius / 0.01;   // unidade de escala da nave (raio Terra * fator da nave)
+  const Mk = ship.radius / 0.01;   // escala do MODELO (camera, colisao, efeitos visuais)
+  const W  = (ship.baseUnit && ship.baseUnit > 0) ? ship.baseUnit : ship.radius / 0.001; // escala do MUNDO (velocidades) = raio da Terra
   const S  = opt.speedScale;       // multiplicador global de velocidade
 
   function approach(a, b, step){ if (a < b){ a += step; if (a > b) a = b; } else { a -= step; if (a < b) a = b; } return a; }
   function fmt(n, d){ return n.toFixed(d === undefined ? 1 : d); }
 
-  // ---- parametros (distancias/velocidades escalam por U; angulos nao) ----
+  // Velocidades presas a escala do MUNDO (W) -> nao mudam quando a nave muda de
+  // tamanho. Camera/colisao/efeitos presos a escala do MODELO (Mk).
   const P = {
-    maxSpeed: 10.5 * U * S,
+    maxSpeed: 2.1 * W * S,
     reverse: 0.4,
-    accel: 7 * U * S,
-    idleDecel: 2.6 * U * S,
-    brakeDecel: 22 * U * S,
-    warpAccel: 110 * U * S,  // compensado p/ o hyper acelerar como antes
-    warpMult: 21,            // 10.5*21 = 0.7x do hyper anterior (era 9*35)
+    accel: 1.4 * W * S,
+    idleDecel: 0.52 * W * S,
+    brakeDecel: 4.4 * W * S,
+    warpAccel: 22 * W * S,
+    warpMult: 21,            // 0.7x do hyper anterior
     yawRate: 1.6,         // rad/s ao girar (lado esquerdo, X)
     yawSign: -1,          // INVERTER para 1 se o giro ficar trocado
     pitchRate: 1.3,       // rad/s ao subir/descer (lado esquerdo, Y)
     pitchSign: 1,         // INVERTER para -1 se subir/descer ficar trocado
     pitchMax: 1.45,       // limite de inclinacao (~83 graus)
     steerLerp: 3.4,       // suavidade com que a velocidade segue o nariz
-    skin: 0.04 * U,
+    skin: 0.04 * Mk,
     gravMinFactor: 0.18,
-    camDist: 0.055 * U,   // distancia da camera atras da nave
-    camHeight: 0.014 * U, // elevacao da camera acima da nave
-    camLook: 0.014 * U,   // ponto de mira a frente da nave
-    camLerp: 6,
+    camDist: 0.040 * Mk,  // distancia da camera atras da nave (mais perto)
+    camWarpMult: 1.2,     // o quanto a camera afasta na hipervelocidade
+    camHeight: 0.012 * Mk,// elevacao da camera acima da nave
+    camLook: 0.012 * Mk,  // ponto de mira a frente da nave
+    camLerp: 9,           // mais alto = camera acompanha mais rapido ao acelerar
     fov: 60, fovWarp: 90,
-    altRate: 6 * U * S,
+    altRate: 1.2 * W * S,
     omegaRate: 0.9,
     omegaMax: 1.6
   };
@@ -549,7 +552,7 @@ export function createNaveMode(ctx){
     orbT0.crossVectors(orbN, orbR0).normalize();
     orbAngle = 0;
     const tang = _v2.copy(velDir).multiplyScalar(speed).dot(orbT0);
-    orbOmega = clamp(tang / Math.max(0.5 * U, orbRadius), -1.2, 1.2);
+    orbOmega = clamp(tang / Math.max(0.1 * W, orbRadius), -1.2, 1.2);
     if (Math.abs(orbOmega) < 0.18) orbOmega = 0.45;
     mode = 'orbit'; warp = false;
     dom.btnWarp.classList.remove('on'); warpFx(false);
@@ -625,16 +628,16 @@ export function createNaveMode(ctx){
 
   function updateCamera(dt){
     if (mode === 'orbit' && orbBody){
-      // Em orbita: camera travada virada para o planeta, acompanhando a nave.
+      // Em orbita: enquadra a NAVE com o planeta ao fundo, acompanhando a volta.
       const C = orbBody.wp;
-      _v1.copy(pos).sub(C);               // planeta -> nave (radial)
+      _v1.copy(pos).sub(C);               // planeta -> nave (radial, "para fora")
       let r = _v1.length();
       if (r < 1e-6){ _v1.copy(fwd); r = 1; }
       _v1.divideScalar(r);
-      const dist = P.camDist * 1.35;
-      _v3.copy(pos).addScaledVector(_v1, dist).addScaledVector(orbN, P.camHeight * 1.6);
+      const dist = P.camDist * 1.25;      // um pouco atras: nave em primeiro plano, planeta ao fundo
+      _v3.copy(pos).addScaledVector(_v1, dist).addScaledVector(orbN, P.camHeight * 1.1);
       camera.position.lerp(_v3, clamp(P.camLerp * dt, 0, 1));
-      camera.lookAt(C);                    // sempre virada para o planeta
+      camera.lookAt(pos);                  // mira na NAVE; o planeta fica atras dela
       if (Math.abs(camera.fov - P.fov) > 0.1){
         camera.fov = approach(camera.fov, P.fov, 60 * dt);
         camera.updateProjectionMatrix();
@@ -642,7 +645,7 @@ export function createNaveMode(ctx){
       return;
     }
     // Voo livre: camera de perseguicao atras do nariz.
-    const dist = P.camDist * (warp ? 1.5 : 1);
+    const dist = P.camDist * (warp ? P.camWarpMult : 1);
     _v1.copy(fwd).multiplyScalar(-1);                          // direcao "atras"
     _v3.copy(pos).addScaledVector(_v1, dist).addScaledVector(shipUp, P.camHeight);
     camera.position.lerp(_v3, clamp(P.camLerp * dt, 0, 1));
@@ -660,9 +663,9 @@ export function createNaveMode(ctx){
   function updateShipFx(){
     const sp = Math.abs(speed);
     const f = clamp(sp / P.maxSpeed, 0, 1.4);
-    const len = (0.02 + f * (warp ? 0.5 : 0.16)) * U;
+    const len = (0.02 + f * (warp ? 0.5 : 0.16)) * Mk;
     ship.trail.scale.set(1, len, 1);
-    ship.trail.position.z = -0.012 * U - len * 0.5;
+    ship.trail.position.z = -0.012 * Mk - len * 0.5;
     ship.trail.material.opacity = clamp(f * 0.8, 0, 0.85);
     ship.glow.material.opacity = 0.5 + clamp(f, 0, 1) * 0.5;
     ship.glow.material.color.setHex(warp ? 0xffd28a : 0x6fd2ff);
@@ -765,7 +768,7 @@ export function createNaveMode(ctx){
     savedTarget.copy(controls.target);
 
     controls.enabled = false;
-    camera.near = Math.min(savedNear, 0.02 * U); camera.fov = P.fov; camera.updateProjectionMatrix();
+    camera.near = Math.min(savedNear, 0.02 * Mk); camera.fov = P.fov; camera.updateProjectionMatrix();
     camera.position.copy(pos).addScaledVector(fwd, -P.camDist).addScaledVector(shipUp, P.camHeight);
     camera.lookAt(pos);
 
