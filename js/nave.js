@@ -194,39 +194,75 @@ function nv_defaultDom(){
 export function buildShip(earthRadius){
   const ER = (earthRadius && earthRadius > 0) ? earthRadius : 1.0;
   const g = new THREE.Group();
-  const s = ER * 0.002;           // raio fisico da nave (0.2% do raio da Terra)
+  const s = ER * 0.002;           // raio fisico da nave (0.2% do raio da Terra) - colisao
   const k = s / 0.01;             // escala do modelo visual
 
-  const hull = new THREE.Mesh(
-    new THREE.ConeGeometry(0.006 * k, 0.022 * k, 16),
-    new THREE.MeshStandardMaterial({ color:0xcfe9ff, roughness:0.4, metalness:0.6, emissive:0x0a1622, emissiveIntensity:0.5 })
-  );
-  hull.rotation.x = Math.PI / 2;
-  g.add(hull);
+  // materiais: casco escuro metalico + acentos ciano brilhantes
+  const matHull = new THREE.MeshStandardMaterial({ color:0x12161d, roughness:0.42, metalness:0.72, emissive:0x070b12, emissiveIntensity:0.4 });
+  const matDark = new THREE.MeshStandardMaterial({ color:0x090c11, roughness:0.5, metalness:0.6 });
+  const matCyan = new THREE.MeshStandardMaterial({ color:0x9fe9ff, emissive:0x2ad4ff, emissiveIntensity:1.5, roughness:0.2, metalness:0.1 });
 
-  const wing = new THREE.Mesh(
-    new THREE.BoxGeometry(0.018 * k, 0.0012 * k, 0.006 * k),
-    new THREE.MeshStandardMaterial({ color:0x6fb3ff, roughness:0.5, metalness:0.4, emissive:0x112233, emissiveIntensity:0.4 })
-  );
-  wing.position.z = -0.002 * k;
-  g.add(wing);
+  // fuselagem (corpo achatado)
+  const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.0076 * k, 0.0042 * k, 0.020 * k), matHull);
+  g.add(bodyMesh);
 
-  const cockpit = new THREE.Mesh(
-    new THREE.SphereGeometry(0.0034 * k, 12, 10),
-    new THREE.MeshStandardMaterial({ color:0x9fe9ff, emissive:0x2ad4ff, emissiveIntensity:1.1, roughness:0.2, metalness:0.1 })
-  );
-  cockpit.position.z = 0.004 * k;
+  // nariz pontudo
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.0040 * k, 0.013 * k, 16), matHull);
+  nose.rotation.x = Math.PI / 2;
+  nose.position.z = 0.0146 * k;
+  g.add(nose);
+
+  // secao traseira afunilada
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.0038 * k, 0.008 * k, 14), matDark);
+  tail.rotation.x = -Math.PI / 2;
+  tail.position.z = -0.0126 * k;
+  g.add(tail);
+
+  // canopy (cockpit) ciano no dorso, perto da frente
+  const cockpit = new THREE.Mesh(new THREE.SphereGeometry(0.0026 * k, 18, 12), matCyan);
+  cockpit.scale.set(0.72, 0.7, 1.7);
+  cockpit.position.set(0, 0.0027 * k, 0.0045 * k);
   g.add(cockpit);
 
+  // faixa ciano no dorso (atras do cockpit)
+  const strip = new THREE.Mesh(new THREE.BoxGeometry(0.0015 * k, 0.0006 * k, 0.011 * k), matCyan);
+  strip.position.set(0, 0.0024 * k, -0.004 * k);
+  g.add(strip);
+
+  // asas varridas para tras (2)
+  const wingGeo = new THREE.BoxGeometry(0.020 * k, 0.0007 * k, 0.012 * k);
+  const wingR = new THREE.Mesh(wingGeo, matHull);
+  wingR.position.set(0.012 * k, -0.0005 * k, -0.0016 * k);
+  wingR.rotation.y = 0.40; wingR.rotation.z = -0.08;
+  g.add(wingR);
+  const wingL = new THREE.Mesh(wingGeo, matHull);
+  wingL.position.set(-0.012 * k, -0.0005 * k, -0.0016 * k);
+  wingL.rotation.y = -0.40; wingL.rotation.z = 0.08;
+  g.add(wingL);
+
+  // estabilizadores verticais em V (2)
+  const finGeo = new THREE.BoxGeometry(0.0007 * k, 0.0078 * k, 0.0062 * k);
+  const finR = new THREE.Mesh(finGeo, matDark);
+  finR.position.set(0.0023 * k, 0.0033 * k, -0.0088 * k);
+  finR.rotation.z = -0.5;
+  g.add(finR);
+  const finL = new THREE.Mesh(finGeo, matDark);
+  finL.position.set(-0.0023 * k, 0.0033 * k, -0.0088 * k);
+  finL.rotation.z = 0.5;
+  g.add(finL);
+
+  // brilho do motor (usado pelos efeitos: ship.glow)
   const glow = new THREE.Mesh(
-    new THREE.SphereGeometry(0.005 * k, 12, 10),
+    new THREE.SphereGeometry(0.0034 * k, 14, 10),
     new THREE.MeshBasicMaterial({ color:0x6fd2ff, transparent:true, opacity:0.9, blending:THREE.AdditiveBlending })
   );
-  glow.position.z = -0.012 * k;
+  glow.scale.set(1, 1, 0.55);
+  glow.position.z = -0.0132 * k;
   g.add(glow);
 
+  // rastro de propulsao (ship.trail; comprimento controlado pelos efeitos)
   const trail = new THREE.Mesh(
-    new THREE.ConeGeometry(0.004 * k, 1, 10, 1, true),
+    new THREE.ConeGeometry(0.0034 * k, 1, 12, 1, true),
     new THREE.MeshBasicMaterial({ color:0x46e6ff, transparent:true, opacity:0.0, blending:THREE.AdditiveBlending, side:THREE.DoubleSide })
   );
   trail.rotation.x = -Math.PI / 2;
@@ -269,13 +305,13 @@ export function createNaveMode(ctx){
 
   // ---- parametros (distancias/velocidades escalam por U; angulos nao) ----
   const P = {
-    maxSpeed: 9 * U * S,
+    maxSpeed: 10.5 * U * S,
     reverse: 0.4,
     accel: 7 * U * S,
     idleDecel: 2.6 * U * S,
     brakeDecel: 22 * U * S,
-    warpAccel: 110 * U * S,  // compensado (5x) p/ o hyper manter a velocidade de antes
-    warpMult: 35,            // 7 * 5: nave 5x menor, mas hyper continua no ritmo original
+    warpAccel: 110 * U * S,  // compensado p/ o hyper acelerar como antes
+    warpMult: 21,            // 10.5*21 = 0.7x do hyper anterior (era 9*35)
     yawRate: 1.6,         // rad/s ao girar (lado esquerdo, X)
     yawSign: -1,          // INVERTER para 1 se o giro ficar trocado
     pitchRate: 1.3,       // rad/s ao subir/descer (lado esquerdo, Y)
@@ -587,8 +623,25 @@ export function createNaveMode(ctx){
     ship.group.position.copy(pos);
   }
 
-  // camera TRAVADA atras da nave, seguindo o nariz (sem controle solto)
   function updateCamera(dt){
+    if (mode === 'orbit' && orbBody){
+      // Em orbita: camera travada virada para o planeta, acompanhando a nave.
+      const C = orbBody.wp;
+      _v1.copy(pos).sub(C);               // planeta -> nave (radial)
+      let r = _v1.length();
+      if (r < 1e-6){ _v1.copy(fwd); r = 1; }
+      _v1.divideScalar(r);
+      const dist = P.camDist * 1.35;
+      _v3.copy(pos).addScaledVector(_v1, dist).addScaledVector(orbN, P.camHeight * 1.6);
+      camera.position.lerp(_v3, clamp(P.camLerp * dt, 0, 1));
+      camera.lookAt(C);                    // sempre virada para o planeta
+      if (Math.abs(camera.fov - P.fov) > 0.1){
+        camera.fov = approach(camera.fov, P.fov, 60 * dt);
+        camera.updateProjectionMatrix();
+      }
+      return;
+    }
+    // Voo livre: camera de perseguicao atras do nariz.
     const dist = P.camDist * (warp ? 1.5 : 1);
     _v1.copy(fwd).multiplyScalar(-1);                          // direcao "atras"
     _v3.copy(pos).addScaledVector(_v1, dist).addScaledVector(shipUp, P.camHeight);
