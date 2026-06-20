@@ -77,14 +77,14 @@ vec3 background(vec3 dir){
   float n=fbm(dir*2.2+8.0); float n2=fbm(dir*4.5-3.0);
   vec3 neb=mix(vec3(0.02,0.016,0.05), vec3(0.13,0.05,0.24), smoothstep(0.35,0.8,n));
   neb += vec3(0.04,0.09,0.17)*smoothstep(0.5,0.95,n2);
-  c += neb*0.9;
-  // NUCLEO GALACTICO: forte fonte de luz atras do buraco negro (lente visivel)
+  c += neb*0.5;
+  // NUCLEO GALACTICO: fonte de luz atras do buraco negro (lente visivel), sem estourar
   float gd = max(dot(normalize(dir), normalize(uGlowDir)), 0.0);
-  float band = pow(gd, 3.0);
-  float core = pow(gd, 22.0);
-  c += vec3(1.0, 0.86, 0.62) * core * 2.6;            // nucleo quente intenso
-  c += vec3(0.85, 0.72, 0.95) * band * 0.5;           // halo/bracos
-  c += vec3(0.35, 0.5, 1.0) * pow(gd, 1.4) * 0.10;    // brilho azulado difuso
+  float band = pow(gd, 4.0);
+  float core = pow(gd, 26.0);
+  c += vec3(1.0, 0.86, 0.62) * core * 1.0;            // nucleo quente (mais contido)
+  c += vec3(0.8, 0.68, 0.95) * band * 0.18;           // halo/bracos suave
+  c += vec3(0.35, 0.5, 1.0) * pow(gd, 1.6) * 0.05;    // brilho azulado leve
   return c;
 }
 
@@ -127,6 +127,7 @@ void main(){
   vec3 dir0 = dir;
   vec3 p = (ro - uCenter) / uRs;     // unidades de Rs
   vec3 v = dir;
+  float bImpact = length(cross(p, dir0));   // parametro de impacto (raio reto), em Rs
   float h2 = dot(cross(p,v), cross(p,v));
 
   vec3 col=vec3(0.0); float alpha=0.0; bool captured=false; float minR=1e9;
@@ -151,7 +152,6 @@ void main(){
     if(alpha>0.99) break;
   }
 
-  float defl = 1.0 - dot(dir0, normalize(v));   // o quanto o raio entortou (forca da lente)
   if(!captured){
     vec3 bg = background(normalize(v));
     col += (1.0-alpha)*bg;
@@ -164,9 +164,10 @@ void main(){
   col = col/(col+vec3(0.85));
   col = pow(col, vec3(0.86));
 
-  // alpha para compor com a cena: opaco no buraco/disco/lente forte, some longe
-  float aLens = smoothstep(0.0006, 0.03, defl);
-  float outA = captured ? 1.0 : max(alpha, aLens);
+  // alpha RADIAL: opaco no buraco/disco/lente perto da sombra, some suave ao redor
+  // (mata o "quadrado" do billboard e deixa a cena real aparecer em volta).
+  float aGlow = 1.0 - smoothstep(uDiskOuter*0.8, uDiskOuter*1.3, bImpact);
+  float outA = captured ? 1.0 : max(alpha, aGlow);
   fragColor = vec4(col, clamp(outA, 0.0, 1.0));
 }
 `;
