@@ -27,7 +27,7 @@ import { createNeptune } from '../objects/neptune.js';
 import { createDecorations } from '../objects/decorations.js';
 import { createDiagram } from '../objects/diagram.js';
 import { buildShip, createNaveMode } from './nave.js?v=12'; // <-- NAVE: modo de exploracao
-import { createBlackHole } from '../objects/blackhole.js?v=3'; // <-- BURACO NEGRO
+import { createBlackHole } from '../objects/blackhole.js?v=4'; // <-- BURACO NEGRO
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
 
@@ -206,7 +206,7 @@ function init() {
   const bhPos = GALAXY.clone().normalize().multiplyScalar(1600);  // na frente da galaxia
   blackHole = createBlackHole({
     position: bhPos, rs: 42, diskInner: 2.3, diskOuter: 9.0,      // sombra ~3x o Sol (raio ~108)
-    effectRadius: 620, noApproach: 450,
+    effectRadius: 620, noApproach: 450, diskBright: 1.3, steps: 220,
     glowDir: GALAXY.clone().sub(bhPos).normalize(),
   });
   scene.add(blackHole.group);
