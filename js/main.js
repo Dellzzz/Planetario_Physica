@@ -27,7 +27,7 @@ import { createNeptune } from '../objects/neptune.js';
 import { createDecorations } from '../objects/decorations.js';
 import { createDiagram } from '../objects/diagram.js';
 import { buildShip, createNaveMode } from './nave.js?v=12'; // <-- NAVE: modo de exploracao
-import { createBlackHole } from '../objects/blackhole.js?v=2'; // <-- BURACO NEGRO
+import { createBlackHole } from '../objects/blackhole.js?v=3'; // <-- BURACO NEGRO
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
 
