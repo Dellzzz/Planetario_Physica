@@ -26,12 +26,13 @@ import { createUranus } from '../objects/uranus.js';
 import { createNeptune } from '../objects/neptune.js';
 import { createDecorations } from '../objects/decorations.js';
 import { createDiagram } from '../objects/diagram.js';
-import { buildShip, createNaveMode } from './nave.js?v=10'; // <-- NAVE: modo de exploracao
+import { buildShip, createNaveMode } from './nave.js?v=11'; // <-- NAVE: modo de exploracao
+import { createBlackHole } from '../objects/blackhole.js?v=1'; // <-- BURACO NEGRO
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
 
 let scene, renderer, camera, controls, cameraFocus, ui;
-let bodies = [], sun = null, sunLight = null, bg = null, indicator = null, decorations = null, diagram = null, nave = null;
+let bodies = [], sun = null, sunLight = null, bg = null, indicator = null, decorations = null, diagram = null, nave = null, blackHole = null;
 const moonParent = {}; // id da lua -> corpo do planeta-mae (para o modo diagrama)
 const clock = new THREE.Clock();
 
@@ -200,6 +201,16 @@ function init() {
   // ---- MODO NAVE (exploracao em primeira pessoa) -----------------------------
   // A nave escala pelo raio da Terra do projeto e nasce junto da Terra.
   // O nave.js injeta sozinho a HUD de voo, o CSS e o botao PILOTAR.
+  // --- BURACO NEGRO: na frente do nucleo da Via-Lactea (luz atras -> lente visivel) ---
+  const GALAXY = new THREE.Vector3(4275, -540, -5625);            // nucleo galactico (scene.js)
+  const bhPos = GALAXY.clone().normalize().multiplyScalar(1600);  // na frente da galaxia
+  blackHole = createBlackHole({
+    position: bhPos, rs: 42, diskInner: 2.3, diskOuter: 9.0,      // sombra ~3x o Sol (raio ~108)
+    effectRadius: 620, noApproach: 450,
+    glowDir: GALAXY.clone().sub(bhPos).normalize(),
+  });
+  scene.add(blackHole.group);
+
   const ship = buildShip(earth.radius);
   scene.add(ship.group);                                  // a nave fica no scene RAIZ
   nave = createNaveMode({
@@ -207,6 +218,8 @@ function init() {
     spawnBody: earth,
     overviewUI: document.getElementById('hud-root'),      // some durante o voo
     flyButton: false,                                     // o botao PILOTAR agora vem do ui.js (barra superior)
+    hazards: [{ position: blackHole.position, radius: blackHole.noApproach,
+                message: 'Imposs\u00EDvel se aproximar mais \u2014 muito pr\u00F3ximo ao horizonte de eventos' }],
     onExit: () => { cameraFocus.reset(); indicator.clear(); },
   });
 
@@ -267,6 +280,7 @@ function animate() {
     indicator.update(delta, elapsed);
     controls.update();
   }
+  if (blackHole) blackHole.update(camera, delta);
   renderer.render(scene, camera);
 }
 
