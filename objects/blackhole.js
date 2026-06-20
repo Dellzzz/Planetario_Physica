@@ -69,16 +69,32 @@ vec3 starLayer(vec3 dir, float sc, float thr){
   return (core+halo)*tw*tint;
 }
 vec3 background(vec3 dir){
-  vec3 c=vec3(0.0);
-  c += starLayer(dir, 120.0, 0.55);
-  c += starLayer(dir, 250.0, 0.74)*0.7;
-  c += starLayer(dir, 470.0, 0.85)*0.5;
-  float n=fbm(dir*2.2+8.0); float n2=fbm(dir*4.5-3.0);
-  vec3 neb=mix(vec3(0.015,0.012,0.035), vec3(0.07,0.03,0.15), smoothstep(0.35,0.8,n));
-  neb += vec3(0.02,0.05,0.10)*smoothstep(0.5,0.95,n2);
-  neb += vec3(0.10,0.03,0.02)*smoothstep(0.6,0.95, fbm(dir*3.0+20.0))*0.5;
-  c += neb*0.5;
-  return c;
+  vec3 c = vec3(0.0);
+  vec3 d = normalize(dir);
+  // estrelas de fundo: mais camadas e mais densas
+  c += starLayer(d, 120.0, 0.50);
+  c += starLayer(d, 250.0, 0.68) * 0.8;
+  c += starLayer(d, 470.0, 0.80) * 0.6;
+  c += starLayer(d, 820.0, 0.86) * 0.45;
+  // VIA-LACTEA: banda de estrelas + brilho difuso + poeira ao longo de um plano
+  vec3 bandN = normalize(vec3(0.32, 1.0, 0.18));
+  float bd = dot(d, bandN);
+  float band = exp(-bd*bd*6.0);
+  float bnz = fbm(d*2.6 + 5.0);
+  c += starLayer(d, 360.0, 0.52) * band * 1.25;
+  c += starLayer(d, 640.0, 0.66) * band * 0.85;
+  vec3 milky = mix(vec3(0.05,0.05,0.09), vec3(0.19,0.17,0.25), smoothstep(0.30,0.85,bnz));
+  c += milky * band;
+  float dust = smoothstep(0.48,0.86, fbm(d*5.5 - 12.0));
+  c -= vec3(0.11,0.10,0.11) * band * dust;
+  // nebulosas coloridas de emissao espalhadas
+  float n  = fbm(d*2.2 + 8.0);
+  float n2 = fbm(d*4.5 - 3.0);
+  vec3 neb = mix(vec3(0.012,0.010,0.030), vec3(0.05,0.025,0.11), smoothstep(0.35,0.8,n));
+  neb += vec3(0.15,0.04,0.05) * smoothstep(0.62,0.96, fbm(d*3.0+20.0));
+  neb += vec3(0.02,0.06,0.13) * smoothstep(0.55,0.95, n2);
+  c += neb * 0.7;
+  return max(c, 0.0);
 }
 
 // ---------------- disco de acrecao + Doppler + redshift ----------------
@@ -90,7 +106,7 @@ vec3 diskEmission(vec3 hp, vec3 vAtHit, out float aOut){
   vec3 base=mix(hot, mix(warm,cool,smoothstep(0.25,1.0,t)), smoothstep(0.0,0.55,t));
   float ang=atan(hp.z,hp.x); float spin=uTime*0.55/pow(rD,1.5);
   float bands=fbm(vec3(cos(ang+spin),sin(ang+spin),0.4)*rD*0.7 + vec3(0.0,0.0,uTime*0.05));
-  float bright=mix(1.7,0.16,t)*(0.55+0.85*bands)*uDiskBright;
+  float bright=mix(2.0,0.18,t)*(0.55+0.85*bands)*uDiskBright;
   // relativistico
   vec3 normal=vec3(0.0,1.0,0.0);
   vec3 radial=normalize(vec3(hp.x,0.0,hp.z));
@@ -149,9 +165,12 @@ void main(){
     vec3 bg = background(normalize(v));
     col += (1.0-alpha)*bg;
   }
-  // anel de fotons
-  float ring = smoothstep(0.085,0.0,abs(minR-1.5))*(captured?0.0:1.0);
-  col += vec3(1.0,0.86,0.62)*ring*0.8;
+  // anel de fotons (borda brilhante): raios que rasparam a esfera de fotons (~1.5 Rs)
+  float ringD = abs(minR - 1.5);
+  float ring    = smoothstep(0.14, 0.0, ringD)*(captured?0.0:1.0);
+  float ringHot = smoothstep(0.045,0.0, ringD)*(captured?0.0:1.0);
+  col += vec3(1.0,0.88,0.66)*ring*1.5;
+  col += vec3(1.0,0.95,0.84)*ringHot*1.9;
 
   // tonemap (RawShaderMaterial: o three NAO aplica conversao de cor aqui)
   col = col/(col+vec3(0.85));
@@ -159,7 +178,7 @@ void main(){
 
   // alpha RADIAL: opaco no buraco/disco/lente perto da sombra, some suave ao redor
   // (mata o "quadrado" do billboard e deixa a cena real aparecer em volta).
-  float aGlow = 1.0 - smoothstep(uDiskOuter*0.8, uDiskOuter*1.3, bImpact);
+  float aGlow = 1.0 - smoothstep(uDiskOuter*0.9, uDiskOuter*1.45, bImpact);
   float outA = captured ? 1.0 : max(alpha, aGlow);
   fragColor = vec4(col, clamp(outA, 0.0, 1.0));
 }
