@@ -13,12 +13,12 @@ import * as THREE from 'three';
 import { CelestialBody, createOrbitLine } from '../js/celestialBody.js';
 
 // --- escala (educativa) ------------------------------------------------------
-const U_RADIUS = 2.3;    // gigante de gelo: menor que os gasosos
-const U_ORBIT = 184;     // alem de Saturno (138)
+const U_RADIUS = 5.2;    // gigante de gelo: menor que os gasosos
+const U_ORBIT = 480;     // alem de Saturno (138)
 const U_TILT = 97.8;     // gira "deitado" (eixo quase no plano da orbita)
 const U_ECC = 0.046;
 const U_ARG = 2.6;
-const U_RING_INNER = 3.0, U_RING_OUTER = 3.9; // aneis finos
+const U_RING_INNER = 6.8, U_RING_OUTER = 8.8; // aneis finos
 
 // ====================== utilitarios proceduralis (prefixo ur) ================
 function urRand(seed) {
@@ -265,31 +265,31 @@ export function createUranus(scene) {
 
   const miranda = urMoon(tilt, {
     id: 'miranda', name: 'Miranda', color: '#bcb8b0', textures: mirandaTex, orbitColor: 0x5f6a72,
-    radius: 0.10, orbitRadius: 4.2, orbitSpeed: 1.0,
+    radius: 0.23, orbitRadius: 9.5, orbitSpeed: 1.0,
     info: [['Diametro', '471 km'], ['Translacao', '1,4 dias'], ['Gravidade', '0,08 m/s\u00B2'], ['Destaque', 'terreno caotico + penhasco gigante']],
     fact: 'A menor e mais bizarra das cinco: um mundo "remendado" com Verona Rupes, o maior penhasco do Sistema Solar (cerca de 20 km de queda).',
   });
   const ariel = urMoon(tilt, {
     id: 'ariel', name: 'Ariel', color: '#cfd0cc', textures: arielTex, orbitColor: 0x6a7278,
-    radius: 0.15, orbitRadius: 5.4, orbitSpeed: 0.78,
+    radius: 0.34, orbitRadius: 12.2, orbitSpeed: 0.78,
     info: [['Diametro', '1.158 km'], ['Translacao', '2,5 dias'], ['Gravidade', '0,27 m/s\u00B2'], ['Destaque', 'a mais brilhante; vales tectonicos']],
     fact: 'A lua mais brilhante de Urano e a de superficie mais jovem, riscada por vales e fendas tectonicas.',
   });
   const umbriel = urMoon(tilt, {
     id: 'umbriel', name: 'Umbriel', color: '#7d7870', textures: umbrielTex, orbitColor: 0x55504a,
-    radius: 0.15, orbitRadius: 6.6, orbitSpeed: 0.62,
+    radius: 0.34, orbitRadius: 14.9, orbitSpeed: 0.62,
     info: [['Diametro', '1.169 km'], ['Translacao', '4,1 dias'], ['Gravidade', '0,20 m/s\u00B2'], ['Destaque', 'a mais escura; cratera clara "Wunda"']],
     fact: 'A mais escura das luas de Urano: superficie antiga e craterizada, com uma misteriosa mancha clara em forma de anel (a cratera Wunda).',
   });
   const titania = urMoon(tilt, {
     id: 'titania', name: 'Tit\u00e2nia', color: '#b8b0a8', textures: titaniaTex, orbitColor: 0x66625a,
-    radius: 0.18, orbitRadius: 7.9, orbitSpeed: 0.46,
+    radius: 0.41, orbitRadius: 17.9, orbitSpeed: 0.46,
     info: [['Diametro', '1.578 km'], ['Translacao', '8,7 dias'], ['Gravidade', '0,38 m/s\u00B2'], ['Destaque', 'maior lua de Urano; grandes canions']],
     fact: 'A maior lua de Urano. Mundo de gelo e rocha cortado por grandes canions (vales de falha) de centenas de km.',
   });
   const oberon = urMoon(tilt, {
     id: 'oberon', name: 'Oberon', color: '#b0a298', textures: oberonTex, orbitColor: 0x645c54,
-    radius: 0.17, orbitRadius: 9.2, orbitSpeed: 0.36,
+    radius: 0.38, orbitRadius: 20.8, orbitSpeed: 0.36,
     info: [['Diametro', '1.523 km'], ['Translacao', '13,5 dias'], ['Gravidade', '0,35 m/s\u00B2'], ['Destaque', 'antiga e muito craterizada']],
     fact: 'A segunda maior lua de Urano e a mais distante das cinco: superficie muito antiga e craterizada, com fundos de cratera escuros.',
   });

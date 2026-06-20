@@ -12,12 +12,12 @@ import * as THREE from 'three';
 import { CelestialBody, createOrbitLine } from '../js/celestialBody.js';
 
 // --- escala (educativa) ------------------------------------------------------
-const S_RADIUS = 2.6;    // um pouco menor que Jupiter (3.0)
-const S_ORBIT = 138;     // alem de Jupiter (96)
+const S_RADIUS = 12.3;    // um pouco menor que Jupiter (3.0)
+const S_ORBIT = 360;     // alem de Jupiter (96)
 const S_TILT = 26.7;     // inclinacao do eixo (define a inclinacao dos aneis)
 const S_ECC = 0.056;     // excentricidade
 const S_ARG = 2.0;       // orientacao da elipse
-const RING_INNER = 3.2, RING_OUTER = 5.8;
+const RING_INNER = 15.1, RING_OUTER = 27.4;
 
 // ====================== utilitarios proceduralis (prefixo st) ================
 function stRand(seed) {
@@ -286,25 +286,25 @@ export function createSaturn(scene) {
 
   const dione = stMoon(tilt, {
     id: 'dione', name: 'Dione', color: '#cdd2d8', textures: dioneTex, orbitColor: 0x66707a,
-    radius: 0.14, orbitRadius: 7.0, orbitSpeed: 0.9,
+    radius: 0.66, orbitRadius: 33.1, orbitSpeed: 0.9,
     info: [['Diametro', '1.123 km'], ['Translacao', '2,7 dias'], ['Gravidade', '0,23 m/s\u00B2'], ['Destaque', 'falesias de gelo brilhantes']],
     fact: 'Lua gelada marcada por falesias de gelo brilhantes -- fraturas tectonicas que riscam a superficie.',
   });
   const reia = stMoon(tilt, {
     id: 'reia', name: 'Reia', color: '#cdd2d8', textures: reiaTex, orbitColor: 0x66707a,
-    radius: 0.16, orbitRadius: 8.2, orbitSpeed: 0.7,
+    radius: 0.76, orbitRadius: 38.8, orbitSpeed: 0.7,
     info: [['Diametro', '1.527 km'], ['Translacao', '4,5 dias'], ['Gravidade', '0,26 m/s\u00B2'], ['Destaque', '2a maior lua de Saturno']],
     fact: 'Um mundo de gelo e rocha fortemente craterizado: a segunda maior lua de Saturno.',
   });
   const titan = stMoon(tilt, {
     id: 'titan', name: 'Tit\u00e3', color: '#d98a3c', textures: titanTex, orbitColor: 0x7a5a30, glow: 0xd98a3c,
-    radius: 0.26, orbitRadius: 9.6, orbitSpeed: 0.5,
+    radius: 1.23, orbitRadius: 45.4, orbitSpeed: 0.5,
     info: [['Diametro', '5.150 km'], ['Translacao', '15,9 dias'], ['Gravidade', '1,35 m/s\u00B2'], ['Destaque', 'atmosfera densa + lagos de metano']],
     fact: 'A maior lua de Saturno e a unica do Sistema Solar com atmosfera densa. Tem rios e lagos -- mas de metano e etano liquidos, nao de agua.',
   });
   const japeto = stMoon(tilt, {
     id: 'japeto', name: 'J\u00e1peto', color: '#b9b2a4', textures: japetoTex, orbitColor: 0x6a655c,
-    radius: 0.15, orbitRadius: 11.5, orbitSpeed: 0.35,
+    radius: 0.71, orbitRadius: 54.4, orbitSpeed: 0.35,
     info: [['Diametro', '1.469 km'], ['Translacao', '79,3 dias'], ['Gravidade', '0,22 m/s\u00B2'], ['Destaque', 'um lado escuro, outro claro']],
     fact: 'A "lua yin-yang": um hemisferio e escuro como carvao e o outro e branco de gelo. Tem ainda uma estranha crista de montanhas no equador.',
   });

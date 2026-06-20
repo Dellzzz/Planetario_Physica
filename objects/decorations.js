@@ -47,13 +47,13 @@ export function createDecorations(scene) {
 
   // ---- Cinturao principal de asteroides (entre Marte ~40 e Jupiter ~96) ------
   const beltGroup = new THREE.Group();
-  beltGroup.add(makeRockField(900, 50, 74, 5, 0.06, 0.20));
+  beltGroup.add(makeRockField(900, 145, 220, 14, 0.16, 0.52));
   scene.add(beltGroup);
   updaters.push((dt) => { beltGroup.rotation.y += dt * 0.02; }); // revolucao lenta
 
   // ---- Meteoroides dispersos (fora do plano do cinturao) ---------------------
   const strayGroup = new THREE.Group();
-  strayGroup.add(makeRockField(140, 18, 90, 34, 0.04, 0.11));
+  strayGroup.add(makeRockField(140, 47, 235, 88, 0.10, 0.29));
   scene.add(strayGroup);
   updaters.push((dt) => { strayGroup.rotation.y += dt * 0.008; });
 
@@ -91,8 +91,8 @@ export function createDecorations(scene) {
   }
 
   const comets = [
-    makeComet({ size: 0.11, a: 72, e: 0.62, w: 0.7, speed: 0.05, inc: 0.35 }),
-    makeComet({ size: 0.08, a: 88, e: 0.70, w: 2.4, speed: 0.035, inc: -0.5 }),
+    makeComet({ size: 0.29, a: 190, e: 0.62, w: 0.7, speed: 0.05, inc: 0.35 }),
+    makeComet({ size: 0.21, a: 235, e: 0.70, w: 2.4, speed: 0.035, inc: -0.5 }),
   ];
 
   const up = new THREE.Vector3(0, 1, 0), dir = new THREE.Vector3(), tq = new THREE.Quaternion();

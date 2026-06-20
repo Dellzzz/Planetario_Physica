@@ -14,12 +14,12 @@ import { CelestialBody, createOrbitLine } from '../js/celestialBody.js';
 import { createIrregularGeometry } from '../js/procedural.js';
 
 // --- escala (educativa) ------------------------------------------------------
-const N_RADIUS = 2.25;
-const N_ORBIT = 242;     // o planeta mais distante
+const N_RADIUS = 5.0;
+const N_ORBIT = 620;     // o planeta mais distante
 const N_TILT = 28.3;
 const N_ECC = 0.009;     // orbita quase circular ao redor do Sol
 const N_ARG = 0.5;
-const N_RING_INNER = 2.9, N_RING_OUTER = 3.7; // aneis muito tenues
+const N_RING_INNER = 6.4, N_RING_OUTER = 8.2; // aneis muito tenues
 
 // ====================== utilitarios proceduralis (prefixo np) ================
 function npRand(seed) {
@@ -296,22 +296,22 @@ export function createNeptune(scene) {
   // Proteu -- FORMATO IRREGULAR (geometria nao esferica) e escuro
   const proteu = npMoon(tilt, {
     id: 'proteu', name: 'Proteu', color: '#6e6c68', textures: { map: proteusTex.map }, orbitColor: 0x4a4844,
-    radius: 0.13, geometry: createIrregularGeometry(0.13, 3, 201, 0.34),
-    orbitRadius: 4.0, orbitSpeed: 0.85,
+    radius: 0.29, geometry: createIrregularGeometry(0.29, 3, 201, 0.34),
+    orbitRadius: 8.9, orbitSpeed: 0.85,
     info: [['Diametro', '420 km'], ['Translacao', '1,1 dias'], ['Gravidade', '0,07 m/s\u00B2'], ['Destaque', 'formato irregular (nao esferico)']],
     fact: 'Um dos maiores corpos IRREGULARES do Sistema Solar: esta quase no limite de tamanho em que a gravidade ainda nao o arredondou. Escuro como fuligem, com a enorme cratera Faros.',
   });
   // Tritao -- orbita e rotacao RETROGRADAS (orbitSpeed negativo) + atmosfera
   const tritao = npMoon(tilt, {
     id: 'tritao', name: 'Trit\u00e3o', color: '#dcc6be', textures: tritonTex, orbitColor: 0x6a5a58, glow: 0xb9c6e0,
-    radius: 0.20, orbitRadius: 5.5, orbitSpeed: -0.6, // NEGATIVO = retrogrado
+    radius: 0.44, orbitRadius: 12.2, orbitSpeed: -0.6, // NEGATIVO = retrogrado
     info: [['Diametro', '2.707 km'], ['Translacao', '5,9 dias (retrograda)'], ['Gravidade', '0,78 m/s\u00B2'], ['Destaque', 'orbita RETROGRADA + geiseres']],
     fact: 'A maior lua de Netuno e a unica lua grande com orbita RETROGRADA (gira ao contrario do planeta) -- sinal de que foi capturada do Cinturao de Kuiper. Tem geiseres de nitrogenio e um terreno enrugado tipo "casca de melao".',
   });
   // Nereida -- orbita muito ELIPTICA (alta excentricidade)
   const nereida = npMoon(tilt, {
     id: 'nereida', name: 'Nereida', color: '#aab0b6', textures: nereidTex, orbitColor: 0x5e656b,
-    radius: 0.09, orbitRadius: 16.0, orbitSpeed: 0.16, eccentricity: 0.62, argPerihelion: 1.5, rotationSpeed: 0.4,
+    radius: 0.20, orbitRadius: 35.5, orbitSpeed: 0.16, eccentricity: 0.62, argPerihelion: 1.5, rotationSpeed: 0.4,
     info: [['Diametro', '340 km'], ['Translacao', '360 dias'], ['Excentricidade', '\u2248 0,75'], ['Destaque', 'orbita extremamente eliptica']],
     fact: 'Tem uma das orbitas mais alongadas (excentricas) de todo o Sistema Solar: a distancia ate Netuno varia enormemente ao longo de cada volta -- observe-a acelerar perto do planeta e desacelerar la longe.',
   });

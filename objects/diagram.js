@@ -28,7 +28,7 @@ export function createDiagram({ planets, getCamera, cameraFocus, sunLight, setAu
   // Calcula a fileira e a posicao da camera que a enquadra (horizontal no desktop,
   // vertical no retrato/celular, para os astros nao ficarem minusculos).
   function computeLineup(camera) {
-    const gap = 13, n = items.length, totalW = (n - 1) * gap, half = totalW / 2;
+    const gap = 48, n = items.length, totalW = (n - 1) * gap, half = totalW / 2;
     const portrait = camera.aspect < 1;
     let maxR = 0;
     for (let i = 0; i < n; i++) {
