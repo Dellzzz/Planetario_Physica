@@ -117,7 +117,7 @@ export function createBackground(scene) {
 
   // Centro da Via-Lactea, bem ao fundo (acompanha a paralaxe lenta do ceu distante)
   const galaxy = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: makeGalaxyCoreTexture(512), transparent: true, opacity: 0.95,
+    map: makeGalaxyCoreTexture(512), transparent: true, opacity: 0.65,
     blending: THREE.AdditiveBlending, depthWrite: false,
   }));
   galaxy.position.set(4275, -540, -5625);
