@@ -27,7 +27,7 @@ import { createNeptune } from '../objects/neptune.js';
 import { createDecorations } from '../objects/decorations.js';
 import { createDiagram } from '../objects/diagram.js';
 import { buildShip, createNaveMode } from './nave.js?v=12'; // <-- NAVE: modo de exploracao
-import { createBlackHole } from '../objects/blackhole.js?v=4'; // <-- BURACO NEGRO
+import { createBlackHole } from '../objects/blackhole.js?v=6'; // <-- BURACO NEGRO
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
 
@@ -206,10 +206,11 @@ function init() {
   const bhPos = GALAXY.clone().normalize().multiplyScalar(1600);  // na frente da galaxia
   blackHole = createBlackHole({
     position: bhPos, rs: 42, diskInner: 2.3, diskOuter: 9.0,      // sombra ~3x o Sol (raio ~108)
-    effectRadius: 620, noApproach: 450, diskBright: 1.3, steps: 220,
-    glowDir: GALAXY.clone().sub(bhPos).normalize(),
+    diskBright: 1.4, steps: 180, noApproach: 450,
   });
-  scene.add(blackHole.group);
+  // a lente faz o tonemap ACES agora (cena vai para o alvo sem tonemap)
+  renderer.toneMapping = THREE.NoToneMapping;
+  blackHole.setSize(window.innerWidth, window.innerHeight, Math.min(window.devicePixelRatio, 2));
 
   const ship = buildShip(earth.radius);
   scene.add(ship.group);                                  // a nave fica no scene RAIZ
@@ -241,6 +242,7 @@ function onResize() {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  if (blackHole) blackHole.setSize(window.innerWidth, window.innerHeight, Math.min(window.devicePixelRatio, 2));
 }
 
 // ---- UNICO loop de animacao -------------------------------------------------
@@ -280,8 +282,12 @@ function animate() {
     indicator.update(delta, elapsed);
     controls.update();
   }
-  if (blackHole) blackHole.update(camera, delta);
-  renderer.render(scene, camera);
+  if (blackHole) {
+    blackHole.update(delta);
+    blackHole.renderLens(renderer, scene, camera);   // cena -> alvo, depois lente -> tela
+  } else {
+    renderer.render(scene, camera);
+  }
 }
 
 try {
