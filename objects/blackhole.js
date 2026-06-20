@@ -73,18 +73,11 @@ vec3 background(vec3 dir){
   c += starLayer(dir, 120.0, 0.55);
   c += starLayer(dir, 250.0, 0.74)*0.7;
   c += starLayer(dir, 470.0, 0.85)*0.5;
-  // nebulosa (mais forte, para a lente ter o que distorcer)
   float n=fbm(dir*2.2+8.0); float n2=fbm(dir*4.5-3.0);
-  vec3 neb=mix(vec3(0.02,0.016,0.05), vec3(0.13,0.05,0.24), smoothstep(0.35,0.8,n));
-  neb += vec3(0.04,0.09,0.17)*smoothstep(0.5,0.95,n2);
+  vec3 neb=mix(vec3(0.015,0.012,0.035), vec3(0.07,0.03,0.15), smoothstep(0.35,0.8,n));
+  neb += vec3(0.02,0.05,0.10)*smoothstep(0.5,0.95,n2);
+  neb += vec3(0.10,0.03,0.02)*smoothstep(0.6,0.95, fbm(dir*3.0+20.0))*0.5;
   c += neb*0.5;
-  // NUCLEO GALACTICO: fonte de luz atras do buraco negro (lente visivel), sem estourar
-  float gd = max(dot(normalize(dir), normalize(uGlowDir)), 0.0);
-  float band = pow(gd, 4.0);
-  float core = pow(gd, 26.0);
-  c += vec3(1.0, 0.86, 0.62) * core * 1.0;            // nucleo quente (mais contido)
-  c += vec3(0.8, 0.68, 0.95) * band * 0.18;           // halo/bracos suave
-  c += vec3(0.35, 0.5, 1.0) * pow(gd, 1.6) * 0.05;    // brilho azulado leve
   return c;
 }
 
