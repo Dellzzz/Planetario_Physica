@@ -7,8 +7,8 @@
 import * as THREE from 'three';
 
 export function createCamera() {
-  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 6000);
-  camera.position.set(0, 22, 64);
+  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.3, 14000);
+  camera.position.set(0, 56, 165);
   return camera;
 }
 
@@ -34,7 +34,7 @@ export class CameraFocus {
     this.staticFly = false; // voo ate uma posicao FIXA (modo diagrama)
     this._sTarget = new THREE.Vector3();
     this._sPos = new THREE.Vector3();
-    this.home = { pos: new THREE.Vector3(0, 22, 64), target: new THREE.Vector3(0, 0, 0) };
+    this.home = { pos: new THREE.Vector3(0, 56, 165), target: new THREE.Vector3(0, 0, 0) };
   }
 
   // duracao da viagem proporcional a distancia (perto = rapido, longe = um pouco mais)

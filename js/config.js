@@ -14,24 +14,24 @@ export const SETTINGS = {
 
 // Escala EDUCATIVA (nao astronomica): Sol dominante, distancias confortaveis.
 export const SCALE = {
-  SUN_RADIUS: 8.0,        // Sol visualmente dominante
-  MERCURY_RADIUS: 0.55,   // Mercurio pequeno
-  VENUS_RADIUS: 1.05,     // Venus maior que Mercurio
-  MERCURY_ORBIT: 16,      // raio orbital
-  VENUS_ORBIT: 24,
-  EARTH_RADIUS: 1.10,     // Terra um pouco maior que Venus
-  EARTH_ORBIT: 33,
+  SUN_RADIUS: 36.0,        // Sol visualmente dominante
+  MERCURY_RADIUS: 0.50,   // Mercurio pequeno
+  VENUS_RADIUS: 1.23,     // Venus maior que Mercurio
+  MERCURY_ORBIT: 50,      // raio orbital
+  VENUS_ORBIT: 72,
+  EARTH_RADIUS: 1.30,     // Terra um pouco maior que Venus
+  EARTH_ORBIT: 95,
   EARTH_TILT_DEG: 23.5,   // inclinacao do eixo (causa as estacoes)
-  MOON_RADIUS: 0.30,      // Lua pequena
-  MOON_ORBIT: 3.0,        // orbita da Lua RELATIVA a Terra
-  MARS_RADIUS: 0.62,      // Marte menor que a Terra
-  MARS_ORBIT: 42,
+  MOON_RADIUS: 0.36,      // Lua pequena
+  MOON_ORBIT: 3.6,        // orbita da Lua RELATIVA a Terra
+  MARS_RADIUS: 0.69,      // Marte menor que a Terra
+  MARS_ORBIT: 125,
   MARS_TILT_DEG: 25,      // inclinacao parecida com a da Terra
   // Luas de Marte: tamanhos EXAGERADOS para ficarem visiveis (valores reais na HUD).
-  PHOBOS_RADIUS: 0.18,
-  PHOBOS_ORBIT: 1.4,      // orbita RELATIVA a Marte
-  DEIMOS_RADIUS: 0.14,
-  DEIMOS_ORBIT: 2.3,
+  PHOBOS_RADIUS: 0.20,
+  PHOBOS_ORBIT: 1.65,      // orbita RELATIVA a Marte
+  DEIMOS_RADIUS: 0.155,
+  DEIMOS_ORBIT: 2.7,
 };
 
 export const COLORS = {

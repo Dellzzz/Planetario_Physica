@@ -94,15 +94,15 @@ export function createBackground(scene) {
     return new THREE.Points(geo, mat);
   }
 
-  const nearStars = starLayer(SETTINGS.starCountNear, 350, 700, 3.0);
-  const farStars = starLayer(SETTINGS.starCountFar, 900, 1800, 5.0);
+  const nearStars = starLayer(SETTINGS.starCountNear, 1700, 3200, 3.0);
+  const farStars = starLayer(SETTINGS.starCountFar, 4000, 7500, 5.0);
 
   // Nebulosas: sprites grandes, coloridos e muito sutis (identidade neon roxo/ciano/magenta).
   const nebulaGroup = new THREE.Group();
   const nebulaDefs = [
-    { rgb: [120, 60, 200], pos: [-600, 200, -700], scale: 700, opacity: 0.16 },
-    { rgb: [40, 160, 200], pos: [700, -150, -500], scale: 600, opacity: 0.12 },
-    { rgb: [200, 50, 180], pos: [-200, -300, 750], scale: 520, opacity: 0.10 },
+    { rgb: [120, 60, 200], pos: [-2700, 900, -3150], scale: 3150, opacity: 0.16 },
+    { rgb: [40, 160, 200], pos: [3150, -675, -2250], scale: 2700, opacity: 0.12 },
+    { rgb: [200, 50, 180], pos: [-900, -1350, 3375], scale: 2340, opacity: 0.10 },
   ];
   for (const d of nebulaDefs) {
     const mat = new THREE.SpriteMaterial({
@@ -120,8 +120,8 @@ export function createBackground(scene) {
     map: makeGalaxyCoreTexture(512), transparent: true, opacity: 0.65,
     blending: THREE.AdditiveBlending, depthWrite: false,
   }));
-  galaxy.position.set(950, -120, -1250);
-  galaxy.scale.set(1300, 1300, 1);
+  galaxy.position.set(4275, -540, -5625);
+  galaxy.scale.set(5850, 5850, 1);
 
   const near = new THREE.Group();
   near.add(nearStars); near.add(nebulaGroup);

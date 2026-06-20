@@ -16,7 +16,7 @@ export function createControls(camera, domElement) {
   controls.zoomSpeed = 0.9;
   controls.panSpeed = 0.6;
   controls.minDistance = 1.0;
-  controls.maxDistance = 300;
+  controls.maxDistance = 1400;
   controls.enablePan = true;
   // Gestos de toque: 1 dedo gira, 2 dedos aproximam/deslocam.
   controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
