@@ -23,7 +23,7 @@ import * as THREE from 'three';
 // Versao da HUD/estilos. Se mudar a estrutura, suba este numero: o modulo
 // remove uma HUD antiga (de versoes anteriores coladas no index.html) e injeta
 // a atual, evitando IDs faltando.
-const NV_VERSION = '4';
+const NV_VERSION = '7';
 
 // ---- CSS da HUD (injetado uma vez) -----------------------------------------
 const NV_CSS = `
@@ -45,6 +45,24 @@ const NV_CSS = `
   z-index:44; pointer-events:none; text-align:center; min-width:min(86vw,560px);}
 #tel-name{font-weight:900; font-size:clamp(15px,4.6vw,22px); letter-spacing:0.16em; color:#eafcff; text-shadow:0 0 14px rgba(70,230,255,0.55);}
 #tel-state{font-size:10px; letter-spacing:0.34em; color:var(--nv-cyan); opacity:0.85; margin-top:2px;}
+#nv-hazard{position:fixed; left:50%; top:calc(70px + env(safe-area-inset-top)); transform:translateX(-50%);
+  z-index:46; display:flex; align-items:center; gap:8px; max-width:min(90vw,440px); text-align:center;
+  padding:9px 15px; border-radius:12px; pointer-events:none; opacity:0; transition:opacity .25s ease;
+  background:rgba(40,6,8,0.82); border:1px solid rgba(255,90,110,0.62);
+  box-shadow:0 0 26px rgba(255,60,80,0.38), inset 0 0 16px rgba(120,0,0,0.3);
+  color:#ffd9dd; font-family:"Rajdhani","Orbitron",system-ui,sans-serif; font-weight:700;
+  font-size:12px; letter-spacing:0.05em; line-height:1.3;}
+#nv-hazard.nv-on{opacity:1;}
+#nv-hazard .hic{font-size:16px; line-height:1;}
+#nv-warpedge{position:fixed; inset:0; z-index:45; pointer-events:none; opacity:0; transition:opacity .35s ease;}
+#nv-warpedge.nv-on{opacity:1;
+  background:radial-gradient(ellipse 82% 82% at center, rgba(0,0,0,0) 56%, rgba(150,15,25,0.42) 86%, rgba(205,28,42,0.66) 100%);
+  -webkit-backdrop-filter:blur(7px) saturate(1.3); backdrop-filter:blur(7px) saturate(1.3);
+  -webkit-mask:radial-gradient(ellipse 84% 84% at center, #0000 54%, #000 90%);
+  mask:radial-gradient(ellipse 84% 84% at center, #0000 54%, #000 90%);
+  animation:nvwarp 1.6s ease-in-out infinite;}
+@keyframes nvwarp{0%,100%{-webkit-backdrop-filter:blur(5px) saturate(1.2); backdrop-filter:blur(5px) saturate(1.2);}
+  50%{-webkit-backdrop-filter:blur(11px) saturate(1.5); backdrop-filter:blur(11px) saturate(1.5);}}
 #tel-bars{display:flex; gap:10px; justify-content:center; margin-top:8px; font-family:"Share Tech Mono",monospace;}
 .tel-cell{background:var(--nv-glass); border:1px solid var(--nv-line-soft); border-radius:8px; padding:5px 11px;
   backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px); box-shadow:0 0 0 1px rgba(0,0,0,0.25) inset;}
@@ -99,12 +117,12 @@ const NV_CSS = `
   animation:nv-warpspin 1.2s linear infinite;}
 #warp-fx.on{opacity:0.9;}
 @keyframes nv-warpspin{to{transform:rotate(360deg);}}
-#btn-fly{position:fixed; left:50%; bottom:calc(26px + env(safe-area-inset-bottom)); transform:translateX(-50%);
-  z-index:38; pointer-events:auto; font-family:"Orbitron",system-ui,sans-serif; font-weight:900; letter-spacing:0.14em; font-size:14px;
-  color:#04121a; padding:15px 28px; border-radius:16px; border:none; cursor:pointer;
-  background:linear-gradient(135deg,#7ff0ff,#46e6ff 55%,#1ea7c4); box-shadow:0 0 30px rgba(70,230,255,0.5), 0 8px 20px rgba(0,0,0,0.45);
-  display:flex; align-items:center; gap:10px;}
-#btn-fly:active{transform:translateX(-50%) scale(0.96);}
+#btn-fly{position:fixed; right:calc(12px + env(safe-area-inset-right)); top:calc(10px + env(safe-area-inset-top));
+  z-index:47; pointer-events:auto; font-family:"Orbitron",system-ui,sans-serif; font-weight:800; letter-spacing:0.10em; font-size:10px;
+  color:#04121a; padding:8px 14px; border-radius:11px; border:none; cursor:pointer;
+  background:linear-gradient(135deg,#7ff0ff,#46e6ff 55%,#1ea7c4); box-shadow:0 0 18px rgba(70,230,255,0.45), 0 4px 12px rgba(0,0,0,0.4);
+  display:flex; align-items:center; gap:6px;}
+#btn-fly:active{transform:scale(0.95);}
 #btn-fly.nv-hidden{display:none;}
 `;
 
@@ -124,6 +142,8 @@ const NV_HUD_HTML = `
       <div class="tel-cell" id="tel-cell-alt" style="display:none"><b>ALTITUDE</b><span id="tel-alt">0<small>r</small></span></div>
     </div>
   </div>
+  <div id="nv-warpedge"></div>
+  <div id="nv-hazard"><span class="hic">&#9888;</span><span id="nv-hazard-msg"></span></div>
   <div id="steer-hint" class="nv-hint">&#9664;&#9654; girar<br>&#9650;&#9660; subir / descer<br>(nariz da nave)</div>
   <div id="thr-hint" class="nv-hint">&#9650; acelerar<br>&#9660; r&eacute; / freio</div>
   <div id="joy-steer" class="nv-stick"><div class="nv-ring"></div><div class="nv-knob"></div></div>
@@ -169,7 +189,7 @@ function nv_ensureFlyButton(onFly){
     b = document.createElement('button');
     b.id = 'btn-fly';
     b.dataset.v = NV_VERSION;
-    b.innerHTML = '&#128640; PILOTAR NAVE';
+    b.innerHTML = 'PILOTAR NAVE';
     document.body.appendChild(b);
   }
   b.addEventListener('pointerdown', (e)=>{ e.preventDefault(); onFly(); }, { passive:false });
@@ -184,7 +204,8 @@ function nv_defaultDom(){
     btnBrake: g('btn-brake'), btnWarp: g('btn-warp'),
     btnOrbit: g('btn-orbit'), btnBack: g('btn-back'), orbitLabel: g('orbit-label'),
     telName: g('tel-name'), telState: g('tel-state'), telDist: g('tel-dist'),
-    telSpd: g('tel-spd'), telAlt: g('tel-alt'), telCellAlt: g('tel-cell-alt')
+    telSpd: g('tel-spd'), telAlt: g('tel-alt'), telCellAlt: g('tel-cell-alt'),
+    nvHazard: g('nv-hazard'), nvHazardMsg: g('nv-hazard-msg'), nvWarpEdge: g('nv-warpedge')
   };
 }
 
@@ -194,7 +215,7 @@ function nv_defaultDom(){
 export function buildShip(earthRadius){
   const ER = (earthRadius && earthRadius > 0) ? earthRadius : 1.0;
   const g = new THREE.Group();
-  const s = ER * 0.001;           // raio fisico da nave (0.1% do raio da Terra) - colisao
+  const s = ER * 0.0001;          // raio fisico da nave (0.01% do raio da Terra) - 10x menor
   const k = s / 0.01;             // escala do modelo visual
 
   // materiais: casco escuro metalico + acentos ciano brilhantes
@@ -298,8 +319,12 @@ export function createNaveMode(ctx){
   const lerp  = THREE.MathUtils.lerp;
   const UP = new THREE.Vector3(0, 1, 0);
   const Mk = ship.radius / 0.01;   // escala do MODELO (camera, colisao, efeitos visuais)
-  const W  = (ship.baseUnit && ship.baseUnit > 0) ? ship.baseUnit : ship.radius / 0.001; // escala do MUNDO (velocidades) = raio da Terra
+  const W  = (ship.baseUnit && ship.baseUnit > 0) ? ship.baseUnit : ship.radius / 0.0001; // escala do MUNDO (velocidades) = raio da Terra
   const S  = opt.speedScale;       // multiplicador global de velocidade
+
+  const hazards = ctx.hazards || [];   // zonas proibidas (ex.: buraco negro): barreira + aviso
+  const _haz = new THREE.Vector3();
+  let hazardWarn = 0, hazardMsg = '';
 
   function approach(a, b, step){ if (a < b){ a += step; if (a > b) a = b; } else { a -= step; if (a < b) a = b; } return a; }
   function fmt(n, d){ return n.toFixed(d === undefined ? 1 : d); }
@@ -544,6 +569,24 @@ export function createNaveMode(ctx){
     }
   }
 
+  // Barreira de zonas proibidas (ex.: horizonte de eventos do buraco negro):
+  // impede a nave de entrar e dispara o aviso na HUD.
+  function resolveHazards(B){
+    for (const h of hazards){
+      const d = B.distanceTo(h.position);
+      if (d < h.radius){
+        _haz.copy(B).sub(h.position);
+        if (_haz.lengthSq() < 1e-6) _haz.set(0, 0, 1);
+        _haz.setLength(h.radius);
+        B.copy(h.position).add(_haz);     // trava na borda da zona
+        if (speed > 0) speed = 0;          // para na parede
+        hazardWarn = 2; hazardMsg = h.message || '';
+      } else if (d < h.radius * 1.3){
+        if (hazardWarn < 1){ hazardWarn = 1; hazardMsg = h.message || ''; }
+      }
+    }
+  }
+
   function enterOrbit(){
     if (mode === 'orbit' || !domBody) return;
     orbBody = domBody;
@@ -633,6 +676,7 @@ export function createNaveMode(ctx){
 
     pos.addScaledVector(velDir, speed * dt);
     resolveCollisions(pos);
+    resolveHazards(pos);
 
     buildOrientation(bank);   // reorienta apos colisao (fwd/shipUp continuam validos)
     ship.group.position.copy(pos);
@@ -829,6 +873,7 @@ export function createNaveMode(ctx){
 
   function update(dt){
     if (!active) return;
+    hazardWarn = 0;
     refreshSamples();
     const speedFactor = scanGravity();
     if (mode === 'orbit') updateOrbit(dt);
@@ -837,6 +882,12 @@ export function createNaveMode(ctx){
     updateShipFx();
     updateButtons();
     updateHud();
+    if (dom.nvHazard){
+      const on = hazardWarn > 0;
+      if (on){ dom.nvHazardMsg.textContent = hazardMsg; dom.nvHazard.classList.add('nv-on'); }
+      else dom.nvHazard.classList.remove('nv-on');
+      if (dom.nvWarpEdge) dom.nvWarpEdge.classList.toggle('nv-on', on);
+    }
   }
 
   bindInput();
