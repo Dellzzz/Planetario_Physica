@@ -27,12 +27,12 @@ import { createNeptune } from '../objects/neptune.js';
 import { createDecorations } from '../objects/decorations.js';
 import { createDiagram } from '../objects/diagram.js';
 import { buildShip, createNaveMode } from './nave.js?v=12'; // <-- NAVE: modo de exploracao
-import { createBlackHole } from '../objects/blackhole.js?v=6'; // <-- BURACO NEGRO
+import { createTour } from './tour.js?v=1'; // <-- TOUR: passeio guiado
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
 
 let scene, renderer, camera, controls, cameraFocus, ui;
-let bodies = [], sun = null, sunLight = null, bg = null, indicator = null, decorations = null, diagram = null, nave = null, blackHole = null;
+let bodies = [], sun = null, sunLight = null, bg = null, indicator = null, decorations = null, diagram = null, nave = null, blackHole = null, tour = null;
 const moonParent = {}; // id da lua -> corpo do planeta-mae (para o modo diagrama)
 const clock = new THREE.Clock();
 
@@ -145,6 +145,14 @@ function init() {
     { planet: neptuneSystem[0], moons: neptuneSystem.slice(1) },
   ];
 
+  // ---- MODO TOUR (passeio guiado) ----
+  tour = createTour({
+    camera, controls,
+    planets: groups.map((g) => g.planet),
+    hudRoot: document.getElementById('hud-root'),
+    onEnd: () => { cameraFocus.reset(); indicator.clear(); },
+  });
+
   // ---- modo diagrama (alinha Sol + planetas; volta as orbitas ao selecionar) ----
   for (const g of groups) for (const mn of g.moons) moonParent[mn.id] = g.planet;
   function setAuxVisible(v) {
@@ -194,6 +202,7 @@ function init() {
       }
     },
     onFly: () => { if (nave) nave.enter(); },   // NAVE: botao PILOTAR fica na barra superior (ui.js)
+    onTour: () => { if (tour) { indicator.clear(); tour.enter(); } },  // TOUR: passeio guiado
   });
 
   createSelection({ camera, domElement: renderer.domElement, targets: selectables, onSelect, onMiss: null });
@@ -201,17 +210,6 @@ function init() {
   // ---- MODO NAVE (exploracao em primeira pessoa) -----------------------------
   // A nave escala pelo raio da Terra do projeto e nasce junto da Terra.
   // O nave.js injeta sozinho a HUD de voo, o CSS e o botao PILOTAR.
-  // --- BURACO NEGRO: na frente do nucleo da Via-Lactea (luz atras -> lente visivel) ---
-  const GALAXY = new THREE.Vector3(4275, -540, -5625);            // nucleo galactico (scene.js)
-  const bhPos = GALAXY.clone().normalize().multiplyScalar(1600);  // na frente da galaxia
-  blackHole = createBlackHole({
-    position: bhPos, rs: 42, diskInner: 2.3, diskOuter: 9.0,      // sombra ~3x o Sol (raio ~108)
-    diskBright: 1.4, steps: 180, noApproach: 450,
-  });
-  // a lente faz o tonemap ACES agora (cena vai para o alvo sem tonemap)
-  renderer.toneMapping = THREE.NoToneMapping;
-  blackHole.setSize(window.innerWidth, window.innerHeight, Math.min(window.devicePixelRatio, 2));
-
   const ship = buildShip(earth.radius);
   scene.add(ship.group);                                  // a nave fica no scene RAIZ
   nave = createNaveMode({
@@ -219,8 +217,7 @@ function init() {
     spawnBody: earth,
     overviewUI: document.getElementById('hud-root'),      // some durante o voo
     flyButton: false,                                     // o botao PILOTAR agora vem do ui.js (barra superior)
-    hazards: [{ position: blackHole.position, radius: blackHole.noApproach,
-                message: 'Imposs\u00EDvel se aproximar mais \u2014 muito pr\u00F3ximo ao horizonte de eventos' }],
+    hazards: [],
     onExit: () => { cameraFocus.reset(); indicator.clear(); },
   });
 
@@ -242,7 +239,6 @@ function onResize() {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  if (blackHole) blackHole.setSize(window.innerWidth, window.innerHeight, Math.min(window.devicePixelRatio, 2));
 }
 
 // ---- UNICO loop de animacao -------------------------------------------------
@@ -253,10 +249,13 @@ function animate() {
   if (state.hidden) return; // economiza bateria quando a aba nao esta visivel
 
   const naveActive = nave && nave.active;  // modo nave assume camera e controle
+  const tourActive = tour && tour.active;  // tour assume camera e congela as orbitas
   const tScale = naveActive ? 0.1 : 1;     // pilotando: planetas 10x mais lentos
 
   if (!state.paused) {
-    if (diagram && diagram.active()) {
+    if (tourActive) {
+      // tour: astros congelados (a camera os orbita)
+    } else if (diagram && diagram.active()) {
       diagram.update(delta); // no modo diagrama, este controlador posiciona os astros (orbitas congeladas)
     } else {
       for (const b of bodies) {
@@ -277,17 +276,14 @@ function animate() {
 
   if (naveActive) {
     nave.update(delta);            // a nave controla a camera enquanto pilota
+  } else if (tourActive) {
+    tour.update(delta);            // o tour controla a camera (orbita cada astro)
   } else {
     cameraFocus.update(delta);
     indicator.update(delta, elapsed);
     controls.update();
   }
-  if (blackHole) {
-    blackHole.update(delta);
-    blackHole.renderLens(renderer, scene, camera);   // cena -> alvo, depois lente -> tela
-  } else {
-    renderer.render(scene, camera);
-  }
+  renderer.render(scene, camera);
 }
 
 try {
