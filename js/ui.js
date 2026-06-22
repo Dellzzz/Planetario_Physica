@@ -7,7 +7,7 @@
 // O painel lateral mostra as informacoes do astro selecionado.
 // =============================================================================
 
-export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause, onToggleOrbits, onToggleDiagram, onFly }) {
+export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause, onToggleOrbits, onToggleDiagram, onFly, onTour }) {
   // lista de astros: Sol + planetas (apenas o nome; sem simbolos)
   const quick = groups.map((g) =>
     '<button class="qbtn" data-id="' + g.planet.id + '" style="--accent:' + g.planet.color + '">' +
@@ -27,6 +27,7 @@ export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause
     '    <div class="menu" id="menu">',
     '      <button class="menu-btn" id="btn-menu" aria-label="Menu" aria-expanded="false"><span class="menu-ic" aria-hidden="true"></span></button>',
     '      <div class="menu-list" id="menu-list" role="menu">',
+    '        <button class="menu-item" id="btn-tour" role="menuitem">Tour guiado</button>',
     '        <button class="menu-item" id="btn-diagram" role="menuitem">Modo diagrama</button>',
     '        <button class="menu-item" id="btn-orbits" role="menuitem">Desativar trajet&oacute;ria</button>',
     '        <button class="menu-item" id="btn-pause" role="menuitem">Pausar</button>',
@@ -188,6 +189,9 @@ export function createUI({ root, bodies, groups, onFocus, onReset, onTogglePause
     setMenuOpen(false);
   });
   $('#btn-diagram').addEventListener('click', () => { setMenuOpen(false); onToggleDiagram(); });
+
+  // TOUR guiado (esconde a HUD e a camera passeia pelos astros)
+  $('#btn-tour').addEventListener('click', () => { setMenuOpen(false); if (typeof onTour === 'function') onTour(); });
 
   function setDiagramActive(v) {
     const b = $('#btn-diagram');
