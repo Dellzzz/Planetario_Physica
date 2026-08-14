@@ -48,5 +48,5 @@ export const COLORS = {
 // automaticamente; caso contrario, mantem-se a textura procedural.
 export const REAL_TEXTURES = {
   basePath: 'textures/',
-  extensions: ['jpg', 'png'], // adicione 'webp' aqui se usar esse formato
+  extensions: ['jpg', 'png', 'webp'], // adicione 'webp' aqui se usar esse formato
 };
