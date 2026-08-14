@@ -150,6 +150,15 @@ export function createAnoes(scene) {
     });
     corpos.push(body);
 
+    // Permite trocar a textura procedural por arquivos reais, se existirem:
+    //   textures/<id>.jpg|png         -> cor da superficie
+    //   textures/<id>_normal.jpg|png  -> relevo (opcional)
+    // Sem os arquivos, continua valendo a textura gerada em codigo.
+    body.realTextures = [
+      { file: cfg.id, material: mat, slot: 'map', srgb: true },
+      { file: cfg.id + '_normal', material: mat, slot: 'normalMap', srgb: false },
+    ];
+
     // ---- Caronte: orbita Plutao (anexado ao grupo dele) ----
     if (cfg.id === 'plutao') {
       const cg = new THREE.Group();
@@ -162,12 +171,17 @@ export function createAnoes(scene) {
       const corbit = createOrbitLine(CARONTE.orb, CARONTE.linha, 0.24);
       group.add(corbit);
 
-      corpos.push(new CelestialBody({
+      const cbody = new CelestialBody({
         id: CARONTE.id, name: CARONTE.name, type: 'Sat\u00e9lite Natural', color: CARONTE.cor,
         group: cg, mesh: cmesh, radius: CARONTE.r, orbitLine: corbit,
         orbitRadius: CARONTE.orb, orbitSpeed: CARONTE.spd, rotationSpeed: CARONTE.rot,
         info: [], fact: '',
-      }));
+      });
+      cbody.realTextures = [
+        { file: CARONTE.id, material: cmat, slot: 'map', srgb: true },
+        { file: CARONTE.id + '_normal', material: cmat, slot: 'normalMap', srgb: false },
+      ];
+      corpos.push(cbody);
     }
   }
 
