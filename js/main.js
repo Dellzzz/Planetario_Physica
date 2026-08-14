@@ -26,13 +26,17 @@ import { createUranus } from '../objects/uranus.js';
 import { createNeptune } from '../objects/neptune.js';
 import { createDecorations } from '../objects/decorations.js';
 import { createDiagram } from '../objects/diagram.js';
+import { createAnoes, createKuiper } from '../objects/anoes.js'; // <-- ANOES: Ceres, Plutao, Eris...
+import { aplicarDados } from './dados.js';    // <-- FICHA TECNICA padronizada de todos os astros
+import { createCatalogo } from './catalogo.js'; // <-- CATALOGO de astros
 import { buildShip, createNaveMode } from './nave.js?v=12'; // <-- NAVE: modo de exploracao
 import { createTour } from './tour.js?v=1'; // <-- TOUR: passeio guiado
 
 const state = { paused: false, orbitsVisible: true, hidden: false };
 
 let scene, renderer, camera, controls, cameraFocus, ui;
-let bodies = [], sun = null, sunLight = null, bg = null, indicator = null, decorations = null, diagram = null, nave = null, blackHole = null, tour = null;
+let bodies = [], sun = null, sunLight = null, bg = null, indicator = null, decorations = null, diagram = null, nave = null, tour = null;
+let kuiper = null, catalogo = null;
 const moonParent = {}; // id da lua -> corpo do planeta-mae (para o modo diagrama)
 const clock = new THREE.Clock();
 
@@ -129,8 +133,11 @@ function init() {
   const saturnSystem = createSaturn(scene); // [Saturno, Dione, Reia, Tita, Japeto]
   const uranusSystem = createUranus(scene); // [Urano, Miranda, Ariel, Umbriel, Titania, Oberon]
   const neptuneSystem = createNeptune(scene); // [Netuno, Proteu, Tritao, Nereida]
-  bodies = [sun, mercury, venus, earth, moon, ...marsSystem, ...jupiterSystem, ...saturnSystem, ...uranusSystem, ...neptuneSystem];
+  const anoes = createAnoes(scene); // [Ceres, Plutao, Caronte, Haumea, Makemake, Eris]
+  const acha = (id) => anoes.find((b) => b.id === id);
+  bodies = [sun, mercury, venus, earth, moon, ...marsSystem, ...jupiterSystem, ...saturnSystem, ...uranusSystem, ...neptuneSystem, ...anoes];
   decorations = createDecorations(scene); // cinturao de asteroides, meteoroides e cometas (so enfeite)
+  kuiper = createKuiper(scene);           // cinturao de Kuiper, alem de Netuno (so enfeite)
 
   // hierarquia para os menus: Sol + planetas no topo, cada um com suas luas no submenu
   const groups = [
@@ -143,12 +150,20 @@ function init() {
     { planet: saturnSystem[0], moons: saturnSystem.slice(1) },
     { planet: uranusSystem[0], moons: uranusSystem.slice(1) },
     { planet: neptuneSystem[0], moons: neptuneSystem.slice(1) },
+    { planet: acha('ceres'), moons: [] },
+    { planet: acha('plutao'), moons: [acha('caronte')] },
+    { planet: acha('haumea'), moons: [] },
+    { planet: acha('makemake'), moons: [] },
+    { planet: acha('eris'), moons: [] },
   ];
+  // Tour e modo diagrama continuam so com o Sol + os 8 planetas (os anoes
+  // deixariam a fileira larga demais e o passeio longo demais).
+  const groupsPrincipais = groups.slice(0, 9);
 
   // ---- MODO TOUR (passeio guiado) ----
   tour = createTour({
     camera, controls,
-    planets: groups.map((g) => g.planet),
+    planets: groupsPrincipais.map((g) => g.planet),
     hudRoot: document.getElementById('hud-root'),
     onEnd: () => { cameraFocus.reset(); indicator.clear(); },
   });
@@ -166,9 +181,10 @@ function init() {
     if (sun.glow) sun.glow.visible = v;   // o brilho enorme do Sol ofuscaria a fileira
     if (sun.halo) sun.halo.visible = v;
     if (decorations && decorations.setVisible) decorations.setVisible(v); // cinturao/cometas
+    if (kuiper) kuiper.setVisible(v);                                     // cinturao de Kuiper
   }
   diagram = createDiagram({
-    planets: groups.map((g) => g.planet),
+    planets: groupsPrincipais.map((g) => g.planet),
     getCamera: () => camera,
     cameraFocus,
     sunLight,
@@ -176,6 +192,10 @@ function init() {
     onFocusBody: (b) => { cameraFocus.follow(b); indicator.select(b); }, // ao terminar a volta, foca o astro
     onReset: () => { cameraFocus.reset(); indicator.clear(); },
   });
+
+  // ficha tecnica padronizada (inclinacao axial, distancia, diametro, gravidade,
+  // atmosfera e curiosidades) -- alimenta o painel lateral e o catalogo
+  aplicarDados(bodies);
 
   // tenta substituir as texturas procedurais por arquivos reais em textures/
   applyRealTextures(bodies);
@@ -204,6 +224,9 @@ function init() {
     onFly: () => { if (nave) nave.enter(); },   // NAVE: botao PILOTAR fica na barra superior (ui.js)
     onTour: () => { if (tour) { indicator.clear(); tour.enter(); } },  // TOUR: passeio guiado
   });
+
+  // ---- CATALOGO DE ASTROS (injeta o proprio botao na barra superior) --------
+  catalogo = createCatalogo({ bodies, onFocus: onSelect });
 
   createSelection({ camera, domElement: renderer.domElement, targets: selectables, onSelect, onMiss: null });
 
@@ -263,6 +286,7 @@ function animate() {
         if (b.atmosphere) b.atmosphere.rotation.y += (b.atmosphereSpeed || 0) * delta * tScale;
       }
       if (decorations) decorations.update(delta * tScale);
+      if (kuiper) kuiper.update(delta * tScale);
     }
     // pulsacao do Sol (intensidade luminosa variavel + brilho) -- sempre ativa
     sunLight.intensity = 2.6 + Math.sin(elapsed * 0.8) * 0.35;
