@@ -15,6 +15,37 @@
 import { DADOS, CAMPOS, pesoRelativo } from './dados.js';
 import { CEU, SECOES_CEU } from './ceu-profundo.js';
 
+// ---------------------------------------------------------------------------
+// FOTOS DO CATALOGO. Igual ao esquema das texturas: se existir o arquivo com o
+// id do astro, ele aparece; se nao existir, cai de volta na esfera colorida.
+// Basta jogar as imagens (PNG com fundo transparente) na pasta astrospic/:
+//   astrospic/marte.png, astrospic/andromeda.png, astrospic/sgra.png ...
+// ---------------------------------------------------------------------------
+const ASTROSPIC = { basePath: 'astrospic/', extensions: ['png', 'webp', 'jpg'] };
+const cacheFoto = new Map(); // id -> url encontrada, ou false se nao existe
+
+function acharFoto(id, aoAchar) {
+  if (cacheFoto.has(id)) { const u = cacheFoto.get(id); if (u) aoAchar(u); return; }
+  (function tenta(i) {
+    if (i >= ASTROSPIC.extensions.length) { cacheFoto.set(id, false); return; }
+    const url = ASTROSPIC.basePath + id + '.' + ASTROSPIC.extensions[i];
+    const img = new Image();
+    img.onload = () => { cacheFoto.set(id, url); aoAchar(url); };
+    img.onerror = () => tenta(i + 1);
+    img.src = url;
+  })(0);
+}
+
+// aplica a foto nos elementos ja desenhados (cartoes ou cabecalho da ficha)
+function aplicarFotos(raiz) {
+  raiz.querySelectorAll('[data-foto]').forEach((el) => {
+    acharFoto(el.dataset.foto, (url) => {
+      el.style.backgroundImage = 'url("' + url + '")';
+      el.classList.add('com-foto');
+    });
+  });
+}
+
 const SECOES_SOLAR = [
   { id: 'estrela', rotulo: 'Estrela' },
   { id: 'rochoso', rotulo: 'Rochosos' },
@@ -108,6 +139,9 @@ const CSS = `
 .cat-nota{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:12px;
   padding:13px 15px;font-family:'Poppins',sans-serif;font-size:12.5px;color:#9d97c0;line-height:1.6}
 .cat-nota b{color:#cfc8ea}
+.cat-bola.com-foto,.cat-cab .bola.com-foto{background-color:transparent;background-size:contain;
+  background-repeat:no-repeat;background-position:center;border-radius:0;box-shadow:none}
+.cat-cab .bola.com-foto{width:96px;height:96px}
 @media(max-width:640px){
   .cat-grade{grid-template-columns:repeat(auto-fill,minmax(126px,1fr));gap:9px}
   .cat-cab h2{font-size:19px}
@@ -171,9 +205,12 @@ export function createCatalogo({ bodies, onFocus }) {
   for (const id of Object.keys(CEU)) {
     const c = CEU[id];
     const linhaOlho = (c.ficha || []).find((f) => f[0].indexOf('olho nu') !== -1);
+    // alguns verbetes TEM maquete 3D na cena (mesmo id do corpo criado em outros.js)
+    const corpo3d = bodies.find((b) => b.id === id) || null;
     lista.push({
       id, nome: c.nome, cor: c.cor, grupo: c.grupo, ordem: c.ordem || 99,
       subtitulo: c.tipo, ficha: c.ficha, curiosidades: c.curiosidades, ceu: true,
+      body: corpo3d, maquete: !!corpo3d,
       olhoNu: !!(linhaOlho && /^sim/i.test(linhaOlho[1])),
     });
   }
@@ -239,12 +276,13 @@ export function createCatalogo({ bodies, onFocus }) {
     elConteudo.querySelectorAll('.cat-card').forEach((c) => {
       c.addEventListener('click', () => abrirFicha(c.dataset.id));
     });
+    aplicarFotos(elConteudo);
   }
 
   function cardHTML(it) {
     return `<div class="cat-card" data-id="${it.id}" style="--c:${it.cor}">
       ${it.olhoNu ? '<span class="cat-olho" title="Visível a olho nu">&#128065;</span>' : ''}
-      <div class="cat-bola"></div>
+      <div class="cat-bola" data-foto="${it.id}"></div>
       <div class="cat-nome">${it.nome}</div>
       <div class="cat-tipo">${it.subtitulo}</div>
     </div>`;
@@ -273,12 +311,22 @@ export function createCatalogo({ bodies, onFocus }) {
     const curs = (it.curiosidades || it.dados && it.dados.curiosidades || [])
       .map((c) => `<li>${c}</li>`).join('');
 
-    const rodape = it.ceu
-      ? `<div class="cat-nota">Este objeto <b>não aparece na cena 3D</b> — e isso é de propósito.
+    let rodape;
+    if (!it.ceu) {
+      rodape = `<button class="cat-ir" id="cat-ir">&#128640; VIAJAR ATÉ ${it.nome.toUpperCase()}</button>`;
+    } else if (it.maquete) {
+      rodape = `<div class="cat-nota">Existe uma <b>maquete 3D</b> deste objeto na cena — mas ela
+           <b>não está em escala nem na distância real</b>. ${it.id === 'halley'
+             ? 'A órbita do Halley foi encurtada para caber na tela, mas ele acelera perto do Sol de verdade, como manda a lei de Kepler.'
+             : 'Na escala do planetário, ele deveria estar milhares de vezes mais longe do que Netuno.'}
+           Os números verdadeiros são os da ficha acima.</div>
+         <button class="cat-ir" id="cat-ir">&#128640; VIAJAR ATÉ ${it.nome.toUpperCase()}</button>`;
+    } else {
+      rodape = `<div class="cat-nota">Este objeto <b>não aparece na cena 3D</b> — e isso é de propósito.
            A escala não comporta: a estrela mais próxima ficaria a milhares de vezes a distância de Netuno,
            e uma galáxia não caberia em tela nenhuma. Colocá-lo ao lado dos planetas passaria uma ideia
-           errada de tamanho e distância.</div>`
-      : `<button class="cat-ir" id="cat-ir">&#128640; VIAJAR ATÉ ${it.nome.toUpperCase()}</button>`;
+           errada de tamanho e distância.</div>`;
+    }
 
     const paiTxt = (!it.ceu && it.dados.planeta && !semAcento(it.body.type || '').includes(semAcento(it.dados.planeta)))
       ? `<div class="pai">Satélite natural de ${it.dados.planeta}</div>` : '';
@@ -286,7 +334,7 @@ export function createCatalogo({ bodies, onFocus }) {
     elFicha.innerHTML = `
       <button class="cat-voltar" id="cat-voltar">&#9666; Voltar ao catálogo</button>
       <div class="cat-cab" style="--c:${it.cor}">
-        <div class="bola"></div>
+        <div class="bola" data-foto="${it.id}"></div>
         <div>
           <h2>${it.nome}</h2>
           <div class="tp">${it.ceu ? it.subtitulo : (it.body.type || '')}</div>
@@ -298,6 +346,7 @@ export function createCatalogo({ bodies, onFocus }) {
       ${curs ? `<div class="cat-cur-tit">Curiosidades</div><ul class="cat-cur">${curs}</ul>` : ''}
       ${rodape}`;
 
+    aplicarFotos(elFicha);
     elLista.style.display = 'none';
     elFicha.classList.add('open');
     tela.scrollTop = 0;
