@@ -231,6 +231,10 @@ export function createSaturn(scene) {
   const reiaTex = stCrateredMoon(384, [[0, [112, 114, 120]], [0.5, [166, 169, 176]], [0.8, [202, 205, 212]], [1, [227, 229, 234]]], 115, 61);
   const titanTex = { map: stTitanTexture(384) };
   const japetoTex = stIapetusTexture(384);
+  // Encelado: a superficie mais branca e reflexiva do Sistema Solar
+  const enceladoTex = stCrateredMoon(384, [[0, [196, 206, 220]], [0.5, [228, 238, 248]], [0.8, [242, 249, 253]], [1, [255, 255, 255]]], 34, 71);
+  // Mimas: cinza e MUITO craterizada (a "Estrela da Morte")
+  const mimasTex = stCrateredMoon(384, [[0, [104, 106, 112]], [0.5, [158, 161, 167]], [0.8, [194, 197, 203]], [1, [221, 224, 230]]], 165, 81);
 
   const group = new THREE.Group();
   const tilt = new THREE.Group();
@@ -284,6 +288,19 @@ export function createSaturn(scene) {
   });
   saturn.realTextures = [{ file: 'saturn', material: mat, slot: 'map', srgb: true }];
 
+  // Aneis terminam em 27.4: Mimas e Encelado orbitam logo em seguida, como na realidade.
+  const mimas = stMoon(tilt, {
+    id: 'mimas', name: 'Mimas', color: '#c3c6cc', textures: mimasTex, orbitColor: 0x66707a,
+    radius: 0.24, orbitRadius: 28.6, orbitSpeed: 1.5,
+    info: [['Diametro', '396 km'], ['Translacao', '22,6 horas'], ['Gravidade', '0,06 m/s\u00B2'], ['Destaque', 'a cratera gigante Herschel']],
+    fact: 'Ficou famosa por parecer a Estrela da Morte: a cratera Herschel tem um terco do diametro da lua.',
+  });
+  const encelado = stMoon(tilt, {
+    id: 'encelado', name: 'Enc\u00e9lado', color: '#eaf4ff', textures: enceladoTex, orbitColor: 0x7a8a99, glow: 0x9fd8ff,
+    radius: 0.30, orbitRadius: 30.4, orbitSpeed: 1.25,
+    info: [['Diametro', '504 km'], ['Translacao', '1,4 dia'], ['Gravidade', '0,11 m/s\u00B2'], ['Destaque', 'geiseres de agua no polo sul']],
+    fact: 'Dispara geiseres de agua que alimentam um dos aneis de Saturno -- e vem de um oceano liquido sob o gelo.',
+  });
   const dione = stMoon(tilt, {
     id: 'dione', name: 'Dione', color: '#cdd2d8', textures: dioneTex, orbitColor: 0x66707a,
     radius: 0.66, orbitRadius: 33.1, orbitSpeed: 0.9,
@@ -309,5 +326,5 @@ export function createSaturn(scene) {
     fact: 'A "lua yin-yang": um hemisferio e escuro como carvao e o outro e branco de gelo. Tem ainda uma estranha crista de montanhas no equador.',
   });
 
-  return [saturn, dione, reia, titan, japeto];
+  return [saturn, mimas, encelado, dione, reia, titan, japeto];
 }
