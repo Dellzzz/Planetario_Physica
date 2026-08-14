@@ -27,6 +27,7 @@ import { createNeptune } from '../objects/neptune.js';
 import { createDecorations } from '../objects/decorations.js';
 import { createDiagram } from '../objects/diagram.js';
 import { createAnoes, createKuiper } from '../objects/anoes.js'; // <-- ANOES: Ceres, Plutao, Eris...
+import { createOutros } from '../objects/outros.js';  // <-- buraco negro, galaxia, nebulosa, Proxima e Halley
 import { aplicarDados } from './dados.js';    // <-- FICHA TECNICA padronizada de todos os astros
 import { createCatalogo } from './catalogo.js'; // <-- CATALOGO de astros
 import { buildShip, createNaveMode } from './nave.js?v=12'; // <-- NAVE: modo de exploracao
@@ -36,7 +37,7 @@ const state = { paused: false, orbitsVisible: true, hidden: false };
 
 let scene, renderer, camera, controls, cameraFocus, ui;
 let bodies = [], sun = null, sunLight = null, bg = null, indicator = null, decorations = null, diagram = null, nave = null, tour = null;
-let kuiper = null, catalogo = null;
+let kuiper = null, catalogo = null, outros = null;
 const moonParent = {}; // id da lua -> corpo do planeta-mae (para o modo diagrama)
 const clock = new THREE.Clock();
 
@@ -138,6 +139,9 @@ function init() {
   bodies = [sun, mercury, venus, earth, moon, ...marsSystem, ...jupiterSystem, ...saturnSystem, ...uranusSystem, ...neptuneSystem, ...anoes];
   decorations = createDecorations(scene); // cinturao de asteroides, meteoroides e cometas (so enfeite)
   kuiper = createKuiper(scene);           // cinturao de Kuiper, alem de Netuno (so enfeite)
+  // Maquetes ILUSTRATIVAS (fora de escala) + o cometa Halley, que orbita de verdade
+  outros = createOutros(scene);
+  bodies = bodies.concat(outros.corpos);
 
   // hierarquia para os menus: Sol + planetas no topo, cada um com suas luas no submenu
   const groups = [
@@ -182,6 +186,7 @@ function init() {
     if (sun.halo) sun.halo.visible = v;
     if (decorations && decorations.setVisible) decorations.setVisible(v); // cinturao/cometas
     if (kuiper) kuiper.setVisible(v);                                     // cinturao de Kuiper
+    if (outros) outros.setVisible(v);                                     // maquetes e o Halley
   }
   diagram = createDiagram({
     planets: groupsPrincipais.map((g) => g.planet),
@@ -287,6 +292,7 @@ function animate() {
       }
       if (decorations) decorations.update(delta * tScale);
       if (kuiper) kuiper.update(delta * tScale);
+      if (outros) outros.update(delta * tScale);
     }
     // pulsacao do Sol (intensidade luminosa variavel + brilho) -- sempre ativa
     sunLight.intensity = 2.6 + Math.sin(elapsed * 0.8) * 0.35;
