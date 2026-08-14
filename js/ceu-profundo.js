@@ -351,6 +351,74 @@ export const CEU = {
       'Antes de 1995 não se conhecia NENHUM planeta fora do Sistema Solar. Hoje já passam de 5.000.',
     ],
   },
+
+  // ========================================================== OUTROS ASTROS
+  sgra: {
+    grupo: 'outros', ordem: 50, nome: 'Sagitário A*', tipo: 'Buraco negro supermassivo', cor: '#ffb45e',
+    ficha: [
+      ['Onde fica', 'No centro da Via Láctea'],
+      ['Distância', '26.000 anos-luz'],
+      ['Massa', 'cerca de 4,3 milhões de vezes a do Sol'],
+      ['Horizonte de eventos', 'cerca de 24 milhões de km de diâmetro'],
+      ['Primeira imagem', '2022, pelo Event Horizon Telescope'],
+      ['Visível a olho nu', 'Não — nem com telescópio comum'],
+    ],
+    curiosidades: [
+      'Buraco negro não é um "buraco" nem um aspirador: é matéria tão comprimida que nem a luz consegue escapar.',
+      'Se o Sol virasse um buraco negro (não vai virar), a Terra continuaria orbitando igual — só ficaria escuro e frio.',
+      'O que brilha nas fotos não é o buraco negro, e sim o gás girando em volta, esmagado e aquecido a milhões de graus.',
+      'A "sombra" central é o horizonte de eventos: dali para dentro, nada volta.',
+      'Descobrir que ele existe rendeu o Nobel de Física de 2020, para Reinhard Genzel e Andrea Ghez.',
+      'Apesar da massa gigantesca, ele é discreto: só percebemos sua presença pelas estrelas que giram em alta velocidade em volta dele.',
+    ],
+  },
+  cinturao: {
+    grupo: 'outros', ordem: 51, nome: 'Cinturão de Asteroides', tipo: 'Região do Sistema Solar', cor: '#a99b86',
+    ficha: [
+      ['Onde fica', 'Entre Marte e Júpiter'],
+      ['Distância', 'de 330 a 480 milhões de km do Sol'],
+      ['Objetos conhecidos', 'mais de 1 milhão com mais de 1 km'],
+      ['Maior objeto', 'Ceres (planeta anão)'],
+      ['Visível a olho nu', 'Não'],
+    ],
+    curiosidades: [
+      'Ao contrário dos filmes, é quase vazio: as pedras estão em média a centenas de milhares de km umas das outras.',
+      'Naves passam por ele sem risco nenhum de colidir.',
+      'Se juntássemos todos os asteroides numa bola só, ela seria menor que a nossa Lua.',
+      'Não é um planeta que explodiu: é matéria que nunca conseguiu virar planeta, por causa da gravidade de Júpiter.',
+    ],
+  },
+  kuiperbelt: {
+    grupo: 'outros', ordem: 52, nome: 'Cinturão de Kuiper', tipo: 'Região do Sistema Solar', cor: '#9aa6b8',
+    ficha: [
+      ['Onde fica', 'Além da órbita de Netuno'],
+      ['Distância', 'de 4,5 a 7,5 bilhões de km do Sol'],
+      ['Composição', 'Corpos gelados: rocha, gelo de água, metano e amônia'],
+      ['Moradores famosos', 'Plutão, Haumea, Makemake, Éris'],
+      ['Visível a olho nu', 'Não'],
+    ],
+    curiosidades: [
+      'É de lá que vêm os planetas anões gelados — e boa parte dos cometas de período curto.',
+      'Tritão, a maior lua de Netuno, provavelmente era um objeto do Kuiper que foi capturado.',
+      'A sonda New Horizons passou por Plutão em 2015 e seguiu visitando outros corpos da região.',
+    ],
+  },
+  oort: {
+    grupo: 'outros', ordem: 53, nome: 'Nuvem de Oort', tipo: 'Região do Sistema Solar', cor: '#c3cede',
+    ficha: [
+      ['Onde fica', 'Envolvendo todo o Sistema Solar, como uma casca'],
+      ['Distância', 'de 0,3 a 1,5 ano-luz do Sol'],
+      ['Composição', 'Trilhões de corpos gelados'],
+      ['Status', 'Nunca foi observada diretamente — é deduzida pelos cometas'],
+      ['Visível a olho nu', 'Não'],
+    ],
+    curiosidades: [
+      'É a fronteira real do Sistema Solar: vai quase até um terço do caminho para a estrela mais próxima.',
+      'Nenhuma sonda humana chegou perto: a Voyager 1 levaria uns 300 anos só para começar a entrar nela.',
+      'Os cometas de período longo, como o Hale-Bopp, vêm de lá.',
+      'Ninguém nunca a viu: sabemos que existe porque é a única explicação para a origem desses cometas.',
+    ],
+  },
 };
 
 // Secoes do ceu profundo, na ordem em que aparecem no catalogo
@@ -360,4 +428,5 @@ export const SECOES_CEU = [
   { id: 'estrela-ceu', rotulo: 'Outras estrelas' },
   { id: 'galaxia',     rotulo: 'Galáxias' },
   { id: 'exoplaneta',  rotulo: 'Exoplanetas' },
+  { id: 'outros',      rotulo: 'Outros astros' },
 ];
