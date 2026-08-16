@@ -198,7 +198,7 @@ export function createCatalogo({ bodies, onFocus }) {
     lista.push({
       id: b.id, nome: b.name, cor: b.color, grupo: d.grupo, ordem: d.ordem || 99,
       subtitulo: d.planeta ? ('lua de ' + d.planeta) : (b.type || ''),
-      body: b, dados: d, ceu: false,
+      body: b, dados: d, ceu: false, foto: b.id,
       olhoNu: OLHO_NU_SOLAR.has(b.id),
     });
   }
@@ -210,6 +210,7 @@ export function createCatalogo({ bodies, onFocus }) {
     lista.push({
       id, nome: c.nome, cor: c.cor, grupo: c.grupo, ordem: c.ordem || 99,
       subtitulo: c.tipo, ficha: c.ficha, curiosidades: c.curiosidades, ceu: true,
+      foto: c.foto || id,   // nome do arquivo em astrospic/, se for diferente do id
       body: corpo3d, maquete: !!corpo3d,
       olhoNu: !!(linhaOlho && /^sim/i.test(linhaOlho[1])),
     });
@@ -282,7 +283,7 @@ export function createCatalogo({ bodies, onFocus }) {
   function cardHTML(it) {
     return `<div class="cat-card" data-id="${it.id}" style="--c:${it.cor}">
       ${it.olhoNu ? '<span class="cat-olho" title="Visível a olho nu">&#128065;</span>' : ''}
-      <div class="cat-bola" data-foto="${it.id}"></div>
+      <div class="cat-bola" data-foto="${it.foto}"></div>
       <div class="cat-nome">${it.nome}</div>
       <div class="cat-tipo">${it.subtitulo}</div>
     </div>`;
@@ -334,7 +335,7 @@ export function createCatalogo({ bodies, onFocus }) {
     elFicha.innerHTML = `
       <button class="cat-voltar" id="cat-voltar">&#9666; Voltar ao catálogo</button>
       <div class="cat-cab" style="--c:${it.cor}">
-        <div class="bola" data-foto="${it.id}"></div>
+        <div class="bola" data-foto="${it.foto}"></div>
         <div>
           <h2>${it.nome}</h2>
           <div class="tp">${it.ceu ? it.subtitulo : (it.body.type || '')}</div>
