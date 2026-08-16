@@ -39,6 +39,7 @@ const state = { paused: false, orbitsVisible: true, hidden: false };
 let scene, renderer, camera, controls, cameraFocus, ui;
 let bodies = [], sun = null, sunLight = null, bg = null, indicator = null, decorations = null, diagram = null, nave = null, tour = null;
 let kuiper = null, catalogo = null, outros = null;
+let naveAntes = false;   // detecta a troca entre explorar e pilotar
 const moonParent = {}; // id da lua -> corpo do planeta-mae (para o modo diagrama)
 const clock = new THREE.Clock();
 
@@ -248,6 +249,10 @@ function init() {
   // A nave escala pelo raio da Terra do projeto e nasce junto da Terra.
   // O nave.js injeta sozinho a HUD de voo, o CSS e o botao PILOTAR.
   const ship = buildShip(earth.radius);
+  // NAVE 10x MENOR, sem mexer na camera: o nave.js calcula distancia da camera,
+  // velocidades e near a partir de ship.radius, que continua o mesmo. Encolhemos
+  // apenas o MODELO visual, entao o enquadramento fica igual e a nave menor.
+  ship.group.scale.multiplyScalar(0.1);
   scene.add(ship.group);                                  // a nave fica no scene RAIZ
   nave = createNaveMode({
     camera, controls, bodies, ship,
@@ -290,6 +295,19 @@ function animate() {
   if (state.hidden) return; // economiza bateria quando a aba nao esta visivel
 
   const naveActive = nave && nave.active;  // modo nave assume camera e controle
+  // BURACO NEGRO: a lente gravitacional e um efeito de TELA CHEIA que usa o
+  // buffer de profundidade para saber o que esta na frente dele. Pilotando, o
+  // near da camera cai para ~0.00016 e essa profundidade perde precisao: o
+  // buraco negro aparecia rasgado, repetido pela tela e tremendo. Alem disso o
+  // raymarch de tela cheia pesa demais num modo que precisa ser fluido.
+  // Solucao: explorando usa a LENTE de verdade; pilotando usa uma versao em
+  // malhas, leve e estavel (e o tonemap volta para o renderer).
+  if (outros && outros.blackHole && naveActive !== naveAntes) {
+    naveAntes = naveActive;
+    outros.setBuracoNegroSimples(naveActive);
+    renderer.toneMapping = naveActive ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+    renderer.toneMappingExposure = 1.15;
+  }
   const tourActive = tour && tour.active;  // tour assume camera e congela as orbitas
   const tScale = naveActive ? 0.1 : 1;     // pilotando: planetas 10x mais lentos
 
@@ -326,9 +344,9 @@ function animate() {
     indicator.update(delta, elapsed);
     controls.update();
   }
-  // A lente gravitacional substitui o render normal: ela desenha a cena num alvo
-  // e depois curva a luz em volta do buraco negro.
-  if (outros && outros.blackHole) outros.blackHole.renderLens(renderer, scene, camera);
+  // Explorando, a lente substitui o render normal (desenha a cena num alvo e
+  // depois curva a luz). Pilotando, render direto -- rapido e sem artefatos.
+  if (outros && outros.blackHole && !naveActive) outros.blackHole.renderLens(renderer, scene, camera);
   else renderer.render(scene, camera);
 }
 
