@@ -97,6 +97,38 @@ function criarBuracoNegro(scene) {
   group.add(alvo);
   scene.add(group);
 
+  // ---- versao SIMPLES (malhas), usada no MODO NAVE -------------------------
+  // A lente e um efeito de tela cheia que depende do buffer de profundidade.
+  // Pilotando, o near da camera fica minusculo (~0.00016) e essa profundidade
+  // perde precisao: o buraco negro aparecia rasgado e em varios lugares. Aqui
+  // desenhamos um buraco negro comum, que nao depende de nada disso.
+  const simples = new THREE.Group();
+  simples.visible = false;
+  const horizonte = new THREE.Mesh(new THREE.SphereGeometry(14, 48, 48),
+    new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  simples.add(horizonte);
+  const anelFoton = new THREE.Mesh(new THREE.TorusGeometry(15.6, 0.5, 12, 120),
+    new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false }));
+  simples.add(anelFoton);
+  const disco = new THREE.Mesh(new THREE.RingGeometry(19, 66, 200, 1),
+    new THREE.MeshBasicMaterial({ map: otDiscoTexture(1024), transparent: true,
+      side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.95 }));
+  const pa = disco.geometry.attributes.position, ua = disco.geometry.attributes.uv, vv = new THREE.Vector3();
+  for (let i = 0; i < pa.count; i++) {
+    vv.fromBufferAttribute(pa, i);
+    ua.setXY(i, (vv.length() - 19) / (66 - 19), Math.atan2(vv.y, vv.x) / (Math.PI * 2) + 0.5);
+  }
+  ua.needsUpdate = true;
+  disco.rotation.x = -Math.PI / 2; disco.rotation.z = 0.34;
+  simples.add(disco);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: otGlowTexture(256, 'rgb(255,170,90)', 0.18), transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.5 }));
+  halo.scale.setScalar(190);
+  simples.add(halo);
+  group.add(simples);
+
   const lente = createBlackHole({
     position: POS.sgra,
     rs: 14,            // raio de Schwarzschild (o "tamanho" da sombra)
@@ -111,7 +143,7 @@ function criarBuracoNegro(scene) {
     group, mesh: null, selectableMeshes: [alvo], radius: 45, // raio so p/ enquadrar a camera
     orbitRadius: 0, rotationSpeed: 0, info: [], fact: '',
   });
-  return { body, lente };
+  return { body, lente, simples, disco, anelFoton };
 }
 
 // ==================================================== 2) GALAXIA (Andromeda) ==
@@ -318,9 +350,15 @@ export function createOutros(scene) {
   return {
     corpos,
     blackHole: bn.lente,   // o main.js usa isto no lugar do renderer.render
+    // troca entre a lente (explorando) e o buraco negro simples (pilotando)
+    setBuracoNegroSimples(v) { bn.simples.visible = v; },
     // objetos que continuam vivos mesmo parados (disco girando, cauda virando)
     update(dt) {
-      bn.lente.update(dt);                      // faz o disco de acrecao girar
+      bn.lente.update(dt);                      // gira o disco de acrecao da LENTE
+      if (bn.simples.visible) {                 // e o da versao simples, no modo nave
+        bn.disco.rotation.z += dt * 0.35;
+        bn.anelFoton.rotation.z -= dt * 0.12;
+      }
       gal.pontos.rotation.y += dt * 0.012;      // giro lento da galaxia
       prox.orbPlaneta.rotation.y += dt * 0.6;   // Proxima b dando a volta
 
