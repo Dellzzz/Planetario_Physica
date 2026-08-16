@@ -37,7 +37,7 @@ export const CEU = {
     ],
   },
   halebopp: {
-    grupo: 'cometa', ordem: 2, nome: 'Hale-Bopp', tipo: 'Cometa de período longo', cor: '#bfe9ff',
+    grupo: 'cometa', ordem: 2, nome: 'Hale-Bopp', tipo: 'Cometa de período longo', cor: '#bfe9ff', foto: 'hale-bopp',
     ficha: [
       ['Núcleo', 'cerca de 60 km  (gigante para um cometa)'],
       ['Período', 'cerca de 2.500 anos'],
@@ -84,7 +84,7 @@ export const CEU = {
     ],
   },
   caranguejo: {
-    grupo: 'nebulosa', ordem: 11, nome: 'Nebulosa do Caranguejo', tipo: 'Resto de supernova', cor: '#ffb37a',
+    grupo: 'nebulosa', ordem: 11, nome: 'Nebulosa do Caranguejo', tipo: 'Resto de supernova', cor: '#ffb37a', foto: 'carangueijo',
     ficha: [
       ['Distância', '6.500 anos-luz'],
       ['Tamanho', '11 anos-luz'],
@@ -291,7 +291,7 @@ export const CEU = {
     ],
   },
   trappist: {
-    grupo: 'exoplaneta', ordem: 41, nome: 'TRAPPIST-1e', tipo: 'Exoplaneta rochoso · zona habitável', cor: '#8fc8e8',
+    grupo: 'exoplaneta', ordem: 41, nome: 'TRAPPIST-1e', tipo: 'Exoplaneta rochoso · zona habitável', cor: '#8fc8e8', foto: 'TRAPPIST-1e',
     ficha: [
       ['Distância', '40 anos-luz'],
       ['Estrela', 'TRAPPIST-1 (anã ultrafria)'],
@@ -430,3 +430,18 @@ export const SECOES_CEU = [
   { id: 'exoplaneta',  rotulo: 'Exoplanetas' },
   { id: 'outros',      rotulo: 'Outros astros' },
 ];
+
+// Preenche o painel lateral dos astros que TEM maquete 3D (Sagitario A*, Halley,
+// Andromeda, Orion, Proxima). Sem isto, o painel abre com o espaco vazio.
+export function aplicarDadosCeu(bodies) {
+  for (const b of bodies) {
+    const c = CEU[b.id];
+    if (!c) continue;
+    b.dadosCeu = c;
+    b.info = (c.ficha || []).slice();
+    if (c.curiosidades && c.curiosidades.length) {
+      b.fact = c.curiosidades[0];
+      b.curiosidades = c.curiosidades;
+    }
+  }
+}
