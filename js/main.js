@@ -29,6 +29,7 @@ import { createDiagram } from '../objects/diagram.js';
 import { createAnoes, createKuiper } from '../objects/anoes.js'; // <-- ANOES: Ceres, Plutao, Eris...
 import { createOutros } from '../objects/outros.js';  // <-- buraco negro, galaxia, nebulosa, Proxima e Halley
 import { aplicarDados } from './dados.js';    // <-- FICHA TECNICA padronizada de todos os astros
+import { aplicarDadosCeu } from './ceu-profundo.js'; // <-- ficha dos astros de ceu profundo
 import { createCatalogo } from './catalogo.js'; // <-- CATALOGO de astros
 import { buildShip, createNaveMode } from './nave.js?v=12'; // <-- NAVE: modo de exploracao
 import { createTour } from './tour.js?v=1'; // <-- TOUR: passeio guiado
@@ -201,6 +202,7 @@ function init() {
   // ficha tecnica padronizada (inclinacao axial, distancia, diametro, gravidade,
   // atmosfera e curiosidades) -- alimenta o painel lateral e o catalogo
   aplicarDados(bodies);
+  aplicarDadosCeu(bodies);   // Sagitario A*, Halley, Andromeda, Orion, Proxima
 
   // tenta substituir as texturas procedurais por arquivos reais em textures/
   applyRealTextures(bodies);
@@ -232,6 +234,13 @@ function init() {
 
   // ---- CATALOGO DE ASTROS (injeta o proprio botao na barra superior) --------
   catalogo = createCatalogo({ bodies, onFocus: onSelect });
+
+  // A lente do buraco negro faz o tonemap por conta propria (ACES identico ao do
+  // scene.js). Por isso o renderer entrega a cena "crua" para ela.
+  if (outros && outros.blackHole) {
+    renderer.toneMapping = THREE.NoToneMapping;
+    outros.blackHole.setSize(window.innerWidth, window.innerHeight, Math.min(window.devicePixelRatio, 2));
+  }
 
   createSelection({ camera, domElement: renderer.domElement, targets: selectables, onSelect, onMiss: null });
 
@@ -267,6 +276,10 @@ function onResize() {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  // o alvo de renderizacao da lente precisa acompanhar o tamanho da tela
+  if (outros && outros.blackHole) {
+    outros.blackHole.setSize(window.innerWidth, window.innerHeight, Math.min(window.devicePixelRatio, 2));
+  }
 }
 
 // ---- UNICO loop de animacao -------------------------------------------------
@@ -313,7 +326,10 @@ function animate() {
     indicator.update(delta, elapsed);
     controls.update();
   }
-  renderer.render(scene, camera);
+  // A lente gravitacional substitui o render normal: ela desenha a cena num alvo
+  // e depois curva a luz em volta do buraco negro.
+  if (outros && outros.blackHole) outros.blackHole.renderLens(renderer, scene, camera);
+  else renderer.render(scene, camera);
 }
 
 try {
