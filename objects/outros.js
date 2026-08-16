@@ -75,6 +75,29 @@ function otDiscoTexture(size) {
   return t;
 }
 
+// Superficie procedural simples: cor base com manchas suaves. Serve de "textura
+// de fabrica"; o material fica com cor BRANCA, entao um arquivo real colocado em
+// textures/ substitui isto sem ganhar tingimento.
+function otMottled(corBase, semente, escuro) {
+  const W = 256, H = 128;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = corBase; ctx.fillRect(0, 0, W, H);
+  const rand = otRand(semente);
+  for (let i = 0; i < 260; i++) {
+    const x = rand() * W, y = rand() * H, r = 3 + rand() * 16;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    const claro = rand() > 0.5;
+    g.addColorStop(0, claro ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,' + (escuro ? 0.20 : 0.12) + ')');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = THREE.RepeatWrapping;
+  return t;
+}
+
 // esfera invisivel usada so como area de clique (a maquete em si e feita de pontos)
 function otAlvoClique(raio) {
   return new THREE.Mesh(
@@ -252,10 +275,8 @@ function criarProxima(scene) {
   const group = new THREE.Group();
   group.position.copy(POS.proxima);
 
-  const estrela = new THREE.Mesh(
-    new THREE.SphereGeometry(5, 40, 40),
-    new THREE.MeshBasicMaterial({ color: 0xff7a52 })
-  );
+  const matEstrela = new THREE.MeshBasicMaterial({ map: otMottled('#ff7a52', 91, false) });
+  const estrela = new THREE.Mesh(new THREE.SphereGeometry(5, 40, 40), matEstrela);
   group.add(estrela);
 
   const brilho = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -267,14 +288,19 @@ function criarProxima(scene) {
 
   // Proxima b: o exoplaneta na zona habitavel (tambem ilustrativo)
   const orbPlaneta = new THREE.Group();
-  const planeta = new THREE.Mesh(
-    new THREE.SphereGeometry(0.8, 24, 24),
-    new THREE.MeshStandardMaterial({ color: 0x9fd8a0, roughness: 1 })
-  );
+  const matPlaneta = new THREE.MeshStandardMaterial({ map: otMottled('#9fd8a0', 77, true), roughness: 1 });
+  const planeta = new THREE.Mesh(new THREE.SphereGeometry(0.8, 24, 24), matPlaneta);
   planeta.position.x = 13;
   orbPlaneta.add(planeta);
   group.add(orbPlaneta);
   group.add(createOrbitLine(13, 0x7a9c86, 0.30));
+
+  // Luz da PROPRIA estrela: sem isto, Proxima b apareceria iluminado pelo nosso
+  // Sol, a 1.180 unidades de distancia -- com a sombra virada para o lado errado.
+  // decay 0 (como a luz do Sol em lighting.js): intensidade constante ate o
+  // limite de 90 unidades, onde some. Com decaimento real o planeta ficaria preto.
+  const luzProxima = new THREE.PointLight(0xff9a6a, 2.4, 90, 0);
+  group.add(luzProxima);
 
   const alvo = otAlvoClique(18); group.add(alvo);
   scene.add(group);
@@ -284,6 +310,17 @@ function criarProxima(scene) {
     group, mesh: estrela, selectableMeshes: [estrela, alvo], radius: 5,
     orbitRadius: 0, rotationSpeed: 0.05, info: [], fact: '',
   });
+  // Texturas reais (opcionais), no mesmo esquema dos planetas:
+  //   textures/proxima.jpg|png|webp        -> superficie da estrela
+  //   textures/proximab.jpg|png|webp       -> superficie do exoplaneta
+  //   textures/proximab_normal.jpg|png     -> relevo do exoplaneta (opcional)
+  // A estrela usa material sem iluminacao (brilho proprio), por isso nao tem normal map.
+  body.realTextures = [
+    { file: 'proxima',         material: matEstrela, slot: 'map', srgb: true },
+    { file: 'proximab',        material: matPlaneta, slot: 'map', srgb: true },
+    { file: 'proximab_normal', material: matPlaneta, slot: 'normalMap', srgb: false },
+  ];
+
   return { body, orbPlaneta };
 }
 
