@@ -15,6 +15,7 @@
 
 import * as THREE from 'three';
 import { CelestialBody, createOrbitLine } from '../js/celestialBody.js';
+import { createBlackHole } from './blackhole.js'; // lente gravitacional REAL (shader de tela cheia)
 
 // Posicoes das maquetes (o controle de camera limita a 1400 do alvo)
 const POS = {
@@ -83,59 +84,34 @@ function otAlvoClique(raio) {
 }
 
 // ================================================== 1) BURACO NEGRO (Sgr A*) ==
+// Aqui NAO desenhamos malhas: quem desenha o buraco negro e o blackhole.js, um
+// pos-processamento de tela cheia que integra a geodesica de luz de Schwarzschild.
+// Ou seja, a LENTE GRAVITACIONAL e de verdade: ele distorce a cena real (planetas,
+// estrelas, a galaxia) ao redor da sombra, com disco de acrecao em rotacao
+// diferencial, anel de fotons, efeito Doppler e oclusao por profundidade.
+// Este grupo existe so para dar uma area clicavel e uma posicao ao corpo.
 function criarBuracoNegro(scene) {
   const group = new THREE.Group();
   group.position.copy(POS.sgra);
-
-  // horizonte de eventos: esfera preta de verdade (nada escapa, nem a luz)
-  const horizonte = new THREE.Mesh(
-    new THREE.SphereGeometry(14, 48, 48),
-    new THREE.MeshBasicMaterial({ color: 0x000000 })
-  );
-  group.add(horizonte);
-
-  // anel de foton: luz curvada rente ao horizonte
-  const anelFoton = new THREE.Mesh(
-    new THREE.TorusGeometry(15.6, 0.5, 12, 120),
-    new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })
-  );
-  group.add(anelFoton);
-
-  // disco de acrecao: gas em espiral, esmagado e aquecido antes de cair
-  const discoTex = otDiscoTexture(1024);
-  const disco = new THREE.Mesh(
-    new THREE.RingGeometry(19, 66, 220, 1),
-    new THREE.MeshBasicMaterial({ map: discoTex, transparent: true, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.95 })
-  );
-  // mapeia a textura radialmente (do interior quente para a borda fria)
-  const pa = disco.geometry.attributes.position, ua = disco.geometry.attributes.uv, v = new THREE.Vector3();
-  for (let i = 0; i < pa.count; i++) {
-    v.fromBufferAttribute(pa, i);
-    const f = (v.length() - 19) / (66 - 19);
-    ua.setXY(i, f, Math.atan2(v.y, v.x) / (Math.PI * 2) + 0.5);
-  }
-  ua.needsUpdate = true;
-  disco.rotation.x = -Math.PI / 2;
-  disco.rotation.z = 0.34;                 // leve inclinacao, para ler melhor em 3D
-  group.add(disco);
-
-  // brilho difuso em volta
-  const halo = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: otGlowTexture(256, 'rgb(255,170,90)', 0.18), transparent: true,
-    blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.5,
-  }));
-  halo.scale.setScalar(190);
-  group.add(halo);
-
-  const alvo = otAlvoClique(70); group.add(alvo);
+  const alvo = otAlvoClique(150);
+  group.add(alvo);
   scene.add(group);
+
+  const lente = createBlackHole({
+    position: POS.sgra,
+    rs: 14,            // raio de Schwarzschild (o "tamanho" da sombra)
+    diskInner: 2.3,    // inicio do disco, em raios de Schwarzschild
+    diskOuter: 9.0,    // fim do disco
+    diskBright: 1.0,
+    steps: 160,        // passos da integracao da luz (menos = mais leve no celular)
+  });
 
   const body = new CelestialBody({
     id: 'sgra', name: 'Sagit\u00e1rio A*', type: 'Buraco Negro Supermassivo', color: '#ffb45e',
-    group, mesh: horizonte, selectableMeshes: [horizonte, alvo], radius: 66,
+    group, mesh: null, selectableMeshes: [alvo], radius: 45, // raio so p/ enquadrar a camera
     orbitRadius: 0, rotationSpeed: 0, info: [], fact: '',
   });
-  return { body, disco, anelFoton };
+  return { body, lente };
 }
 
 // ==================================================== 2) GALAXIA (Andromeda) ==
@@ -341,10 +317,10 @@ export function createOutros(scene) {
 
   return {
     corpos,
+    blackHole: bn.lente,   // o main.js usa isto no lugar do renderer.render
     // objetos que continuam vivos mesmo parados (disco girando, cauda virando)
     update(dt) {
-      bn.disco.rotation.z += dt * 0.35;         // gas girando rumo ao horizonte
-      bn.anelFoton.rotation.z -= dt * 0.12;
+      bn.lente.update(dt);                      // faz o disco de acrecao girar
       gal.pontos.rotation.y += dt * 0.012;      // giro lento da galaxia
       prox.orbPlaneta.rotation.y += dt * 0.6;   // Proxima b dando a volta
 
